@@ -21,6 +21,8 @@ import RoleManagement from "./pages/RoleManagement";
 import AdminDashboard from "./pages/AdminDashboard";
 import About from "./pages/About";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Forex from "./pages/Forex";
+
 import AIPredictions from "./pages/AIPredictions";
 import Trading from "./pages/Trading";
 import Markets from "./pages/Markets";
@@ -51,6 +53,8 @@ const App = () => (
               <Route path="/faq" element={<FAQ />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/markets" element={<Markets />} />
+              <Route path="/forex" element={<Forex />} />
+
               
               {/* Protected Routes - Authentication Required */}
               <Route path="/dashboard" element={

@@ -1,0 +1,380 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base colors with modern contrast ratios */
+    --background: 240 10% 99%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    /* Premium green palette inspired by modern fintech */
+    --primary: 158 64% 52%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 158 64% 72%;
+    --primary-dark: 158 64% 32%;
+    
+    /* Sophisticated secondary colors */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    /* Modern accent colors */
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 142 76% 56%;
+    
+    /* Status colors with better accessibility */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    
+    /* Enhanced borders and inputs */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 158 64% 52%;
+    
+    /* Glassmorphism colors */
+    --glass-bg: 0 0% 100% / 0.8;
+    --glass-border: 240 5.9% 90% / 0.5;
+    
+    /* Gradient variables */
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 52%), hsl(142 76% 36%));
+    --gradient-secondary: linear-gradient(135deg, hsl(240 4.8% 95.9%), hsl(240 5.9% 90%));
+    --gradient-accent: linear-gradient(135deg, hsl(158 64% 72%), hsl(158 64% 32%));
+    
+    /* Shadow variables */
+    --shadow-soft: 0 2px 8px hsl(240 10% 3.9% / 0.04);
+    --shadow-medium: 0 8px 24px hsl(240 10% 3.9% / 0.08);
+    --shadow-strong: 0 16px 48px hsl(240 10% 3.9% / 0.12);
+    --shadow-glow: 0 0 32px hsl(158 64% 52% / 0.3);
+  }
+
+  .dark {
+    /* Dark mode with proper contrast and modern feel */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Enhanced primary colors for dark mode */
+    --primary: 158 64% 62%;
+    --primary-foreground: 240 10% 3.9%;
+    --primary-light: 158 64% 82%;
+    --primary-dark: 158 64% 42%;
+    
+    /* Dark mode secondary colors */
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    /* Dark mode accent */
+    --accent: 142 76% 46%;
+    --accent-foreground: 240 10% 3.9%;
+    --accent-light: 142 76% 66%;
+    
+    /* Dark mode status colors */
+    --destructive: 0 72% 61%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 76% 46%;
+    --success-foreground: 240 10% 3.9%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 240 10% 3.9%;
+    
+    /* Dark mode borders and inputs */
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 158 64% 62%;
+    
+    /* Dark glassmorphism */
+    --glass-bg: 240 10% 3.9% / 0.8;
+    --glass-border: 240 3.7% 15.9% / 0.5;
+    
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 62%), hsl(142 76% 46%));
+    --gradient-secondary: linear-gradient(135deg, hsl(240 3.7% 15.9%), hsl(240 3.7% 20%));
+    --gradient-accent: linear-gradient(135deg, hsl(158 64% 82%), hsl(158 64% 42%));
+    
+    /* Dark mode shadows */
+    --shadow-soft: 0 2px 8px hsl(0 0% 0% / 0.12);
+    --shadow-medium: 0 8px 24px hsl(0 0% 0% / 0.24);
+    --shadow-strong: 0 16px 48px hsl(0 0% 0% / 0.36);
+    --shadow-glow: 0 0 32px hsl(158 64% 62% / 0.4);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-financial;
+    background: radial-gradient(ellipse at top, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    min-height: 100vh;
+  }
+  
+  /* Modern scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Enhanced glassmorphism cards */
+.glass-card {
+  background: hsl(var(--glass-bg));
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid hsl(var(--glass-border));
+  box-shadow: var(--shadow-soft);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+/* Premium card variants */
+.premium-card {
+  background: var(--gradient-primary);
+  color: hsl(var(--primary-foreground));
+  border: none;
+  box-shadow: var(--shadow-glow);
+}
+
+.neu-card {
+  background: hsl(var(--card));
+  box-shadow: 
+    8px 8px 16px hsl(var(--muted) / 0.3),
+    -8px -8px 16px hsl(var(--background) / 0.8);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.crypto-chart {
+  @apply h-[300px] w-full;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-primary\/20::-webkit-scrollbar-thumb {
+  background-color: rgba(137, 137, 222, 0.2);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(96, 95, 91, 0.3);
+  border-radius: 2px;
+}
+
+/* Text clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Enhanced animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Enhanced gradient text utilities */
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.text-gradient-green {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-secondary {
+  background: var(--gradient-secondary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Enhanced hover effects */
+.hover-glow:hover {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+/* Pulse dot for live indicators */
+.pulse-dot {
+  position: relative;
+}
+
+.pulse-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  transform: translate(-50%, -50%);
+  animation: pulse-ring 1.5s ease-out infinite;
+  opacity: 0.7;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* Enhanced interaction effects */
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-strong);
+}
+
+/* Modern button effects */
+.btn-primary {
+  background: var(--gradient-primary);
+  border: none;
+  color: hsl(var(--primary-foreground));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Micro-interactions */
+.micro-bounce {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.micro-bounce:hover {
+  transform: scale(1.05);
+}
+
+.micro-bounce:active {
+  transform: scale(0.98);
+}
+
+/* Enhanced scrollbar */
+.scrollbar-modern::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-modern::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 3px;
+}
+
+.scrollbar-modern::-webkit-scrollbar-thumb {
+  background: var(--gradient-primary);
+  border-radius: 3px;
+}
+
+.scrollbar-modern::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary-dark));
+}
+
+/* Status indicators */
+.status-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicator::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: hsl(var(--success));
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Floating elements */
+.floating {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(-5px) rotate(-1deg); }
+}
+
+/* Modern grid layouts */
+.grid-modern {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .grid-modern {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

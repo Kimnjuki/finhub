@@ -1,10 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from 'convex';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://psrfbrnxszyxjbhnnivs.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseAnonKey) {
-  console.warn('VITE_SUPABASE_ANON_KEY is not set. Supabase features will fail.')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey || '')
+const convex = createClient(process.env.CONVEX_DEPLOY_KEY, { url: process.env.VITE_CONVEX_URL });
+export { convex };

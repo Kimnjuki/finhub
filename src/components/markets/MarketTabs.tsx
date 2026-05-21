@@ -2,7 +2,8 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CryptoMarketsTab } from './CryptoMarketsTab';
 import { Fortune500Tab } from './Fortune500Tab';
-import { Bitcoin, TrendingUp, BarChart3, Star } from 'lucide-react';
+import { NvidiaAIPanel } from '@/components/NvidiaAIPanel';
+import { Bitcoin, TrendingUp, BarChart3, Star, Brain } from 'lucide-react';
 
 export const MarketTabs: React.FC = () => {
   return (
@@ -36,10 +37,19 @@ export const MarketTabs: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="analysis">
-          <div className="text-center py-12">
-            <BarChart3 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Market Analysis</h3>
-            <p className="text-muted-foreground">Advanced market analysis tools coming soon</p>
+          <div className="py-4">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Brain className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold">NVIDIA AI Market Analysis</h3>
+                <p className="text-sm text-muted-foreground">
+                  Real-time AI-powered crypto & forex analysis using live market data
+                </p>
+              </div>
+            </div>
+            <NvidiaAIPanel />
           </div>
         </TabsContent>
 

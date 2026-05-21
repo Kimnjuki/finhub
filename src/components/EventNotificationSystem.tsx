@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,24 +22,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 interface NotificationPreference {
-  id: string;
-  user_id: string;
+  _id: string;
+  userId: string;
   category?: string;
   symbol?: string;
   coin?: string;
   country?: string;
   impact?: string;
-  created_at: string;
+  createdAt: number;
 }
 
 interface EventSubscription {
-  id: string;
-  event_id: string;
+  _id: string;
+  eventId: string;
   channels: string[];
-  lead_times: number[];
-  event: {
+  leadTimes: number[];
+  event?: {
     title: string;
-    start_ts_utc: string;
+    startTsUtc: number;
     category: string;
     impact: string;
   };
@@ -48,9 +49,6 @@ const EventNotificationSystem = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [preferences, setPreferences] = useState<NotificationPreference[]>([]);
-  const [subscriptions, setSubscriptions] = useState<EventSubscription[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('subscriptions');
 
   // Notification settings
@@ -60,124 +58,74 @@ const EventNotificationSystem = () => {
   const [quietEnd, setQuietEnd] = useState('07:00');
   const [userTimezone, setUserTimezone] = useState('Africa/Nairobi');
 
-  useEffect(() => {
-    if (user) {
-      fetchNotificationData();
-    }
-  }, [user]);
+  // Query follows (preferences)
+  const follows = useQuery(
+    api.follows.listByUser,
+    user ? { userId: user.id } : "skip"
+  );
 
-  const fetchNotificationData = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      // Fetch user preferences
-      const { data: prefsData, error: prefsError } = await supabase
-        .from('follows')
-        .select('*')
-        .eq('user_id', user.id);
+  // Query event subscriptions
+  const subscriptions = useQuery(
+    api.eventSubscriptions.listByUser,
+    user ? { userId: user.id } : "skip"
+  );
 
-      if (prefsError) throw prefsError;
-      
-      // Fetch event subscriptions
-      const { data: subsData, error: subsError } = await supabase
-        .from('event_subscriptions')
-        .select(`
-          *,
-          event:events (
-            title,
-            start_ts_utc,
-            category,
-            impact
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (subsError) throw subsError;
-
-      setPreferences(prefsData || []);
-      setSubscriptions(subsData || []);
-
-    } catch (error) {
-      console.error('Error fetching notification data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load notification settings",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mutations
+  const createFollowMutation = useMutation(api.follows.create);
+  const removeFollowMutation = useMutation(api.follows.remove);
+  const unsubscribeMutation = useMutation(api.eventSubscriptions.unsubscribe);
 
   const createFollowFilter = async (type: 'category' | 'symbol' | 'coin' | 'country', value: string) => {
     if (!user) return;
 
-    const followData: any = {
-      user_id: user.id,
-      created_at: new Date().toISOString()
-    };
-    
-    followData[type] = value;
-
-    const { error } = await supabase
-      .from('follows')
-      .insert([followData]);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+    try {
+      await createFollowMutation({
+        userId: user.id,
+        filterType: type,
+        filterValue: value,
       });
-    } else {
       toast({
         title: "Follow Added",
         description: `You'll now receive notifications for ${type}: ${value}`,
       });
-      fetchNotificationData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create follow",
+        variant: "destructive",
+      });
     }
   };
 
   const removeFollow = async (id: string) => {
-    const { error } = await supabase
-      .from('follows')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await removeFollowMutation({ followId: id as any });
       toast({
         title: "Follow Removed",
         description: "Follow filter has been removed",
       });
-      fetchNotificationData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove follow",
+        variant: "destructive",
+      });
     }
   };
 
   const unsubscribeFromEvent = async (subscriptionId: string) => {
-    const { error } = await supabase
-      .from('event_subscriptions')
-      .delete()
-      .eq('id', subscriptionId);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await unsubscribeMutation({ subscriptionId: subscriptionId as any });
       toast({
         title: "Unsubscribed",
         description: "You've been unsubscribed from this event",
       });
-      fetchNotificationData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to unsubscribe",
+        variant: "destructive",
+      });
     }
   };
 
@@ -213,7 +161,8 @@ const EventNotificationSystem = () => {
     );
   }
 
-  if (loading) {
+  // Check if queries are still loading
+  if (follows === undefined || subscriptions === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -360,7 +309,7 @@ const EventNotificationSystem = () => {
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            {subscription.channels.map(channel => (
+                            {subscription.channels.map((channel: string) => (
                               <div key={channel} className="flex items-center gap-1">
                                 {getChannelIcon(channel)}
                                 <span className="text-xs capitalize">{channel}</span>
@@ -429,7 +378,7 @@ const EventNotificationSystem = () => {
               </div>
 
               {/* Active Filters */}
-              {preferences.length === 0 ? (
+              {follows.length === 0 ? (
                 <div className="text-center py-8">
                   <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">No follow filters active</p>
@@ -439,7 +388,7 @@ const EventNotificationSystem = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {preferences.map((pref) => (
+                  {follows.map((pref) => (
                     <div 
                       key={pref.id} 
                       className="flex items-center justify-between p-3 border rounded"

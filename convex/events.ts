@@ -102,7 +102,6 @@ export const create = mutation({
     const now = Date.now();
     return ctx.db.insert("events", {
       ...args,
-      supabaseId: `conv-${now}`,
       status: args.status ?? "scheduled",
       symbols: args.symbols ?? [],
       coins: args.coins ?? [],

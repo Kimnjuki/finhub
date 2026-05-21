@@ -1,16 +1,6 @@
 import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 
-export const getUserBySupabaseId = query({
-  args: { supabaseUserId: v.string() },
-  handler: async (ctx, { supabaseUserId }) => {
-    return ctx.db
-      .query("users")
-      .withIndex("by_supabase_id", (q) => q.eq("supabaseUserId", supabaseUserId))
-      .first();
-  },
-});
-
 export const getUserByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
@@ -43,7 +33,7 @@ export const getUserSubscription = query({
     const plan = await ctx.db
       .query("subscriptionPlans")
       .withIndex("by_name")
-      .filter((q) => q.eq(q.field("supabasePlanId"), sub.planId))
+      .filter((q) => q.eq(q.field("planId"), sub.planId))
       .first();
     return { subscription: sub, plan };
   },

@@ -20,7 +20,6 @@ export const signUp = mutation({
     const passwordHash = await hashPassword(password);
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
-      supabaseUserId: `conv-${now}-${Math.random().toString(36).slice(2)}`,
       email,
       passwordHash,
       signInMethod: "email",

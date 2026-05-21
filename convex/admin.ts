@@ -7,7 +7,7 @@ export const dashboardStats = query({
     const subscriptions = await ctx.db.query("userSubscriptions").collect();
     const plans = await ctx.db.query("subscriptionPlans").collect();
 
-    const planMap = new Map(plans.map((p) => [p.supabasePlanId, p]));
+    const planMap = new Map(plans.map((p) => [p.planId, p]));
 
     const activeSubscriptions = subscriptions.filter(
       (s) => s.status === "active"

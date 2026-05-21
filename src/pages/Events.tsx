@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { EventCard } from "@/components/EventCard";
 import { EventFilters, type EventFilters as EventFiltersType } from "@/components/EventFilters";
 import MobileNavigation from "@/components/MobileNavigation";
@@ -17,7 +18,7 @@ import EventManagement from "@/components/EventManagement";
 import { generateEventICS } from "@/lib/eventUtils";
 
 interface Event {
-  id: string;
+  _id: string;
   slug: string;
   title: string;
   description: string;
@@ -26,173 +27,46 @@ interface Event {
   coins: string[];
   country: string;
   location: string;
-  start_ts_utc: string;
-  end_ts_utc: string;
+  startTsUtc: number;
+  endTsUtc: number;
   impact: string;
   status: string;
-  source_url: string;
-  created_at: string;
+  sourceUrl: string;
+  createdAt: number;
 }
 
 const Events = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<EventFiltersType>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState('upcoming');
   const [mainView, setMainView] = useState<'list' | 'calendar' | 'notifications' | 'checklist' | 'management'>('list');
-  const [realTimeConnected, setRealTimeConnected] = useState(false);
+
+  const events = useQuery(api.events.list);
 
   useEffect(() => {
-    fetchEvents();
-    
-    // Set up real-time subscription for events with enhanced notifications
-    const eventsChannel = supabase
-      .channel('events-real-time')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'events'
-        },
-        (payload) => {
-          console.log('Events updated:', payload);
-          setRealTimeConnected(true);
-          fetchEvents();
-          
-          // Enhanced real-time notifications
-          if (payload.eventType === 'INSERT') {
-            const newEvent = payload.new as Event;
-            toast({
-              title: "🆕 New Event Added",
-              description: `${newEvent.title} scheduled for ${new Date(newEvent.start_ts_utc).toLocaleDateString()}`,
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedEvent = payload.new as Event;
-            toast({
-              title: "📝 Event Updated",
-              description: `${updatedEvent.title} has been modified`,
-            });
-          } else if (payload.eventType === 'DELETE') {
-            toast({
-              title: "🗑️ Event Removed",
-              description: "An event has been cancelled or removed",
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Events subscription status:', status);
-        setRealTimeConnected(status === 'SUBSCRIBED');
-      });
-
-    // Enhanced user-specific real-time subscriptions
-    const userChannel = user ? supabase
-      .channel(`user-events-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'event_subscriptions',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('User subscriptions updated:', payload);
-          if (payload.eventType === 'INSERT') {
-            toast({
-              title: "🔔 Subscription Added",
-              description: "You'll receive notifications for this event",
-            });
-          } else if (payload.eventType === 'DELETE') {
-            toast({
-              title: "🔕 Unsubscribed",
-              description: "Event notifications disabled",
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'follows',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('User follows updated:', payload);
-          if (payload.eventType === 'INSERT') {
-            const follow = payload.new;
-            let filterType = '';
-            if (follow.category) filterType = `category: ${follow.category}`;
-            if (follow.symbol) filterType = `symbol: ${follow.symbol}`;
-            if (follow.coin) filterType = `coin: ${follow.coin}`;
-            if (follow.country) filterType = `country: ${follow.country}`;
-            
-            toast({
-              title: "👀 Follow Filter Added",
-              description: `You'll receive notifications for ${filterType}`,
-            });
-          } else if (payload.eventType === 'DELETE') {
-            toast({
-              title: "🚫 Follow Filter Removed",
-              description: "Filter notifications disabled",
-            });
-          }
-        }
-      )
-      .subscribe() : null;
-
-    return () => {
-      supabase.removeChannel(eventsChannel);
-      if (userChannel) {
-        supabase.removeChannel(userChannel);
-      }
-    };
-  }, []);
+    if (events !== undefined) {
+      setLoading(false);
+    }
+  }, [events]);
 
   useEffect(() => {
     applyFilters();
   }, [events, activeFilters, activeTab]);
 
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('start_ts_utc', { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      toast({
-        title: "Error Loading Events",
-        description: "Failed to load events. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const applyFilters = () => {
+    if (!events) return;
     let filtered = [...events];
-    const now = new Date();
+    const now = Date.now();
 
     // Filter by tab (upcoming vs past)
     if (activeTab === 'upcoming') {
-      filtered = filtered.filter(event => new Date(event.start_ts_utc) > now);
+      filtered = filtered.filter(event => event.startTsUtc > now);
     } else if (activeTab === 'past') {
-      filtered = filtered.filter(event => new Date(event.start_ts_utc) <= now);
+      filtered = filtered.filter(event => event.startTsUtc <= now);
     }
 
     // Apply search filter
@@ -201,8 +75,8 @@ const Events = () => {
       filtered = filtered.filter(event => 
         event.title.toLowerCase().includes(searchTerm) ||
         event.description?.toLowerCase().includes(searchTerm) ||
-        event.symbols.some(symbol => symbol.toLowerCase().includes(searchTerm)) ||
-        event.coins.some(coin => coin.toLowerCase().includes(searchTerm))
+        event.symbols?.some(symbol => symbol.toLowerCase().includes(searchTerm)) ||
+        event.coins?.some(coin => coin.toLowerCase().includes(searchTerm))
       );
     }
 
@@ -256,7 +130,9 @@ const Events = () => {
   };
 
   const getEventStats = () => {
-    const upcoming = events.filter(e => new Date(e.start_ts_utc) > new Date()).length;
+    if (!events) return { upcoming: 0, highImpact: 0, cryptoEvents: 0, macroEvents: 0 };
+    const now = Date.now();
+    const upcoming = events.filter(e => e.startTsUtc > now).length;
     const highImpact = events.filter(e => e.impact === 'high').length;
     const cryptoEvents = events.filter(e => e.category === 'crypto').length;
     const macroEvents = events.filter(e => e.category === 'macro').length;
@@ -318,17 +194,6 @@ const Events = () => {
                 <div className="text-sm text-muted-foreground">Macro Events</div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Real-time Status */}
-          <div className="flex justify-center mt-4">
-            <Badge 
-              variant={realTimeConnected ? "default" : "secondary"} 
-              className={`animate-pulse ${realTimeConnected ? 'bg-success text-success-foreground' : ''}`}
-            >
-              <div className={`w-2 h-2 rounded-full mr-2 ${realTimeConnected ? 'bg-success-foreground animate-pulse' : 'bg-muted-foreground'}`} />
-              {realTimeConnected ? 'Real-time Connected' : 'Connecting...'}
-            </Badge>
           </div>
         </header>
 
@@ -433,7 +298,7 @@ const Events = () => {
                 : "space-y-4"
               }>
                 {filteredEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard key={event._id} event={event} />
                 ))}
               </div>
             )}
@@ -446,7 +311,7 @@ const Events = () => {
         
         {mainView === 'checklist' && <EventChecklist />}
 
-        {mainView === 'management' && <EventManagement onEventsUpdated={fetchEvents} />}
+        {mainView === 'management' && <EventManagement onEventsUpdated={() => {}} />}
 
         {/* Additional Information */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">

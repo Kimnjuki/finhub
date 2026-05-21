@@ -18,7 +18,7 @@ export const run = internalMutation({
     // 2. Subscription Plans
     const plans = [
       {
-        supabasePlanId: "6fd5c854-c8e0-4f35-96d0-6d672b86ca9a",
+        planId: "6fd5c854-c8e0-4f35-96d0-6d672b86ca9a",
         name: "Free",
         description: "Perfect for beginners exploring financial markets",
         priceMonthly: 0,
@@ -37,7 +37,7 @@ export const run = internalMutation({
         updatedAt: new Date("2025-08-11T12:55:02.735Z").getTime(),
       },
       {
-        supabasePlanId: "a24602b8-08b1-46b0-8953-5b893b58fe19",
+        planId: "a24602b8-08b1-46b0-8953-5b893b58fe19",
         name: "Premium",
         description: "Advanced tools for serious traders and investors",
         priceMonthly: 29,
@@ -61,7 +61,7 @@ export const run = internalMutation({
         updatedAt: new Date("2025-08-11T12:55:02.735Z").getTime(),
       },
       {
-        supabasePlanId: "242c3426-7638-4ddf-99ba-62b29c265f32",
+        planId: "242c3426-7638-4ddf-99ba-62b29c265f32",
         name: "VIP",
         description: "Professional-grade platform for expert traders",
         priceMonthly: 99,

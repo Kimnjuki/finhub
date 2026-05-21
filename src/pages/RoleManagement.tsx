@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,124 +11,66 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Users, UserPlus, Shield, Settings, Search, Filter } from "lucide-react";
+import { Users, UserPlus, Shield, Search } from "lucide-react";
 import MobileNavigation from "@/components/MobileNavigation";
 
-interface User {
-  user_id: string;
+interface UserWithRoles {
+  userId: string;
   email: string;
-  created_at: string;
-  is_verified: boolean;
-  subscription_tier_id: string | null;
-}
-
-interface UserRole {
-  user_id: string;
-  role_name: string;
-  assigned_at: string;
-}
-
-interface UserWithRoles extends User {
+  createdAt: number;
   roles: string[];
 }
 
 const RoleManagement = () => {
-  const [users, setUsers] = useState<UserWithRoles[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [newRole, setNewRole] = useState("");
   const [isAssignRoleOpen, setIsAssignRoleOpen] = useState(false);
 
+  const usersData = useQuery(api.admin.recentUsers);
+  const assignRoleMutation = useMutation(api.queries.helpers.assignRole);
+
   const availableRoles = ["admin", "vip_user", "analyst", "user"];
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([]);
 
   useEffect(() => {
-    filterUsers();
-  }, [users, searchTerm, roleFilter]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch users with their roles using a SQL function
-      const { data: usersWithRolesData, error } = await supabase
-        .rpc('get_users_with_roles' as any);
-
-      if (error) {
-        // Fallback: fetch users separately and roles will be empty
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('*');
-
-        if (usersError) throw usersError;
-
-        const usersWithRoles: UserWithRoles[] = (usersData || []).map(user => ({
-          ...user,
-          roles: []
-        }));
-
-        setUsers(usersWithRoles);
-        return;
-      }
-
-      setUsers(usersWithRolesData || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch users and roles",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (usersData) {
+      setUsers(usersData as unknown as UserWithRoles[]);
     }
-  };
+  }, [usersData]);
 
-  const filterUsers = () => {
-    let filtered = users;
+  useEffect(() => {
+    if (!users) return;
+    let filtered = [...users];
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(user =>
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Apply role filter
     if (roleFilter !== "all") {
       filtered = filtered.filter(user =>
-        user.roles.includes(roleFilter)
+        user.roles?.includes(roleFilter)
       );
     }
 
     setFilteredUsers(filtered);
-  };
+  }, [users, searchTerm, roleFilter]);
 
-  const assignRole = async (userId: string, roleName: string) => {
+  const handleAssignRole = async () => {
+    if (!selectedUserId || !newRole) return;
     try {
-      const { error } = await supabase
-        .rpc('assign_user_role' as any, {
-          user_id: userId,
-          role_name: roleName
-        });
-
-      if (error) throw error;
-
+      await assignRoleMutation({ userId: selectedUserId, roleName: newRole });
       toast({
         title: "Success",
-        description: `Role "${roleName}" assigned successfully`,
+        description: `Role "${newRole}" assigned successfully`,
       });
-
-      fetchUsers();
       setIsAssignRoleOpen(false);
-      setSelectedUser(null);
+      setSelectedUserId(null);
       setNewRole("");
     } catch (error) {
       console.error('Error assigning role:', error);
@@ -138,31 +82,7 @@ const RoleManagement = () => {
     }
   };
 
-  const removeRole = async (userId: string, roleName: string) => {
-    try {
-      const { error } = await supabase
-        .rpc('remove_user_role' as any, {
-          user_id: userId,
-          role_name: roleName
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Role "${roleName}" removed successfully`,
-      });
-
-      fetchUsers();
-    } catch (error) {
-      console.error('Error removing role:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove role",
-        variant: "destructive",
-      });
-    }
-  };
+  const loading = !usersData;
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -297,8 +217,7 @@ const RoleManagement = () => {
                           <Label htmlFor="user-select">Select User</Label>
                           <Select
                             onValueChange={(userId) => {
-                              const user = users.find(u => u.user_id === userId);
-                              setSelectedUser(user || null);
+                              setSelectedUserId(userId);
                             }}
                           >
                             <SelectTrigger>
@@ -306,7 +225,7 @@ const RoleManagement = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {users.map(user => (
-                                <SelectItem key={user.user_id} value={user.user_id}>
+                                <SelectItem key={user.userId} value={user.userId}>
                                   {user.email}
                                 </SelectItem>
                               ))}
@@ -334,8 +253,8 @@ const RoleManagement = () => {
                           Cancel
                         </Button>
                         <Button 
-                          onClick={() => selectedUser && newRole && assignRole(selectedUser.user_id, newRole)}
-                          disabled={!selectedUser || !newRole}
+                          onClick={handleAssignRole}
+                          disabled={!selectedUserId || !newRole}
                           className="btn-primary"
                         >
                           Assign Role
@@ -351,25 +270,18 @@ const RoleManagement = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Email</TableHead>
-                        <TableHead>Verified</TableHead>
                         <TableHead>Roles</TableHead>
                         <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.map((user) => (
-                        <TableRow key={user.user_id}>
+                        <TableRow key={user.userId}>
                           <TableCell className="font-medium">{user.email}</TableCell>
                           <TableCell>
-                            <Badge variant={user.is_verified ? "default" : "secondary"}>
-                              {user.is_verified ? "✓ Verified" : "Pending"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {user.roles.length > 0 ? (
-                                user.roles.map((role) => (
+                              {user.roles && user.roles.length > 0 ? (
+                                user.roles.map((role: string) => (
                                   <Badge 
                                     key={role} 
                                     variant={getRoleBadgeVariant(role)}
@@ -386,22 +298,7 @@ const RoleManagement = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              {user.roles.map((role) => (
-                                <Button
-                                  key={role}
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => removeRole(user.user_id, role)}
-                                  className="text-xs"
-                                >
-                                  Remove {role}
-                                </Button>
-                              ))}
-                            </div>
+                            {new Date(user.createdAt).toLocaleDateString()}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -415,7 +312,7 @@ const RoleManagement = () => {
           <TabsContent value="roles" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {availableRoles.map((role) => {
-                const roleUsers = users.filter(user => user.roles.includes(role));
+                const roleUsers = users.filter(user => user.roles?.includes(role));
                 return (
                   <Card key={role} className="glass-card card-hover">
                     <CardHeader className="text-center">
@@ -428,7 +325,7 @@ const RoleManagement = () => {
                     <CardContent>
                       <div className="space-y-2">
                         {roleUsers.slice(0, 3).map((user) => (
-                          <div key={user.user_id} className="text-sm text-muted-foreground">
+                          <div key={user.userId} className="text-sm text-muted-foreground">
                             {user.email}
                           </div>
                         ))}

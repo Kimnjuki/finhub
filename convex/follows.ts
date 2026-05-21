@@ -19,7 +19,6 @@ export const create = mutation({
   },
   handler: async (ctx, { userId, filterType, filterValue }) => {
     const followData: any = {
-      supabaseId: `conv-${Date.now()}`,
       userId,
       createdAt: Date.now(),
     };

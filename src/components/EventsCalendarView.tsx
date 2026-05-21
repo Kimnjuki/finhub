@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useMemo } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,78 +16,50 @@ import {
 import { EventCard } from "@/components/EventCard";
 import { useNavigate } from "react-router-dom";
 
-interface Event {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  category: string;
-  symbols: string[];
-  coins: string[];
-  country: string;
-  location: string;
-  start_ts_utc: string;
-  end_ts_utc: string;
-  impact: string;
-  status: string;
-  source_url: string;
-  created_at: string;
-}
-
 interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
-  events: Event[];
+  events: any[];
 }
 
 const EventsCalendarView = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>([]);
-  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'agenda'>('month');
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchEventsForMonth();
+  // Calculate date range for Convex query
+  const dateRange = useMemo(() => {
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    
+    // Extend range to show events from previous/next month that appear on calendar
+    const startOfCalendar = new Date(startOfMonth);
+    startOfCalendar.setDate(startOfCalendar.getDate() - startOfCalendar.getDay());
+    
+    const endOfCalendar = new Date(endOfMonth);
+    endOfCalendar.setDate(endOfCalendar.getDate() + (6 - endOfCalendar.getDay()));
+
+    return {
+      startTs: startOfCalendar.getTime(),
+      endTs: endOfCalendar.getTime(),
+    };
   }, [currentDate]);
 
-  useEffect(() => {
-    generateCalendarDays();
-  }, [events, currentDate]);
+  // Fetch events from Convex
+  const convexEvents = useQuery(api.events.listByDateRange, {
+    startTs: dateRange.startTs,
+    endTs: dateRange.endTs,
+  });
 
-  const fetchEventsForMonth = async () => {
-    setLoading(true);
-    try {
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      
-      // Extend range to show events from previous/next month that appear on calendar
-      const startOfCalendar = new Date(startOfMonth);
-      startOfCalendar.setDate(startOfCalendar.getDate() - startOfCalendar.getDay());
-      
-      const endOfCalendar = new Date(endOfMonth);
-      endOfCalendar.setDate(endOfCalendar.getDate() + (6 - endOfCalendar.getDay()));
+  const loading = convexEvents === undefined;
+  const events = convexEvents ?? [];
 
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .gte('start_ts_utc', startOfCalendar.toISOString())
-        .lte('start_ts_utc', endOfCalendar.toISOString())
-        .order('start_ts_utc', { ascending: true });
-
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateCalendarDays = () => {
+  // Generate calendar days from Convex events
+  const calendarDays = useMemo((): CalendarDay[] => {
+    if (!events || events.length === 0) return [];
+    
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     const startOfCalendar = new Date(startOfMonth);
@@ -103,7 +76,7 @@ const EventsCalendarView = () => {
 
     while (currentDateLocal <= endOfCalendar) {
       const dayEvents = events.filter(event => {
-        const eventDate = new Date(event.start_ts_utc);
+        const eventDate = new Date(event.startTsUtc);
         return eventDate.toDateString() === currentDateLocal.toDateString();
       });
 
@@ -117,8 +90,8 @@ const EventsCalendarView = () => {
       currentDateLocal.setDate(currentDateLocal.getDate() + 1);
     }
 
-    setCalendarDays(days);
-  };
+    return days;
+  }, [events, currentDate]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);
@@ -145,7 +118,7 @@ const EventsCalendarView = () => {
   const getSelectedDateEvents = () => {
     if (!selectedDate) return [];
     return events.filter(event => {
-      const eventDate = new Date(event.start_ts_utc);
+      const eventDate = new Date(event.startTsUtc);
       return eventDate.toDateString() === selectedDate.toDateString();
     });
   };
@@ -197,7 +170,7 @@ const EventsCalendarView = () => {
               <div className="space-y-1">
                 {day.events.slice(0, 3).map(event => (
                   <div
-                    key={event.id}
+                    key={event._id}
                     className={`text-xs p-1 rounded truncate ${getImpactColor(event.impact)} text-white`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -238,7 +211,7 @@ const EventsCalendarView = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {getSelectedDateEvents().map(event => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard key={event._id} event={event} />
                 ))}
               </div>
             )}
@@ -289,7 +262,7 @@ const EventsCalendarView = () => {
         <div className="grid grid-cols-7 gap-4">
           {weekDays.map(day => {
             const dayEvents = events.filter(event => {
-              const eventDate = new Date(event.start_ts_utc);
+              const eventDate = new Date(event.startTsUtc);
               return eventDate.toDateString() === day.toDateString();
             });
 
@@ -305,13 +278,13 @@ const EventsCalendarView = () => {
                   <div className="space-y-2">
                     {dayEvents.map(event => (
                       <div
-                        key={event.id}
+                        key={event._id}
                         className={`text-xs p-2 rounded cursor-pointer ${getImpactColor(event.impact)} text-white`}
                         onClick={() => navigate(`/events/${event.slug}`)}
                       >
                         <div className="font-semibold truncate">{event.title}</div>
                         <div className="opacity-75">
-                          {new Date(event.start_ts_utc).toLocaleTimeString('en-US', { 
+                          {new Date(event.startTsUtc).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit' 
                           })}
@@ -330,7 +303,7 @@ const EventsCalendarView = () => {
 
   const renderAgendaView = () => {
     const upcomingEvents = events
-      .filter(event => new Date(event.start_ts_utc) > new Date())
+      .filter(event => new Date(event.startTsUtc) > new Date())
       .slice(0, 20);
 
     return (
@@ -345,7 +318,7 @@ const EventsCalendarView = () => {
         ) : (
           <div className="space-y-4">
             {upcomingEvents.map(event => (
-              <EventCard key={event.id} event={event} />
+              <EventCard key={event._id} event={event} />
             ))}
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,21 +25,27 @@ import { generateEventICS, convertToUserTimezone } from "@/lib/eventUtils";
 import MobileNavigation from "@/components/MobileNavigation";
 
 interface Event {
-  id: string;
+  _id: string;
+  _creationTime: number;
   slug: string;
   title: string;
-  description: string;
+  description?: string;
   category: string;
   symbols: string[];
   coins: string[];
-  country: string;
-  location: string;
-  start_ts_utc: string;
-  end_ts_utc: string;
+  country?: string;
+  location?: string;
+  startTsUtc: number;
+  endTsUtc?: number;
   impact: string;
   status: string;
-  source_url: string;
-  created_at: string;
+  sourceUrl?: string;
+  createdAt: number;
+}
+
+interface EventMeta {
+  key: string;
+  value: string;
 }
 
 const EventDetailPage = () => {
@@ -47,105 +54,43 @@ const EventDetailPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [event, setEvent] = useState<Event | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [relatedEvents, setRelatedEvents] = useState<Event[]>([]);
   const [eventMeta, setEventMeta] = useState<Record<string, string>>({});
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  // Fetch main event by slug
+  const event = useQuery(api.events.getBySlug, { slug: slug ?? "" });
+  const loading = event === undefined;
+
+  // Fetch related events when event is loaded
+  const relatedEvents = useQuery(
+    api.events.getRelated,
+    event && slug ? { category: event.category, excludeSlug: slug } : "skip"
+  );
+
+  // Fetch event meta when event is loaded
+  const metaData = useQuery(
+    api.events.getEventMeta,
+    event ? { eventId: event._id } : "skip"
+  );
+
   useEffect(() => {
-    if (slug) {
-      fetchEventDetails();
+    if (metaData) {
+      const metaObj = metaData.reduce((acc: Record<string, string>, meta) => {
+        acc[meta.key] = meta.value;
+        return acc;
+      }, {} as Record<string, string>);
+      setEventMeta(metaObj);
     }
-  }, [slug]);
-
-  const fetchEventDetails = async () => {
-    try {
-      // Fetch main event
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (eventError) throw eventError;
-      setEvent(eventData);
-
-      // Fetch event meta
-      const { data: metaData } = await supabase
-        .from('event_meta')
-        .select('key, value')
-        .eq('event_id', eventData.id);
-
-      if (metaData) {
-        const metaObj = metaData.reduce((acc, meta) => {
-          acc[meta.key] = meta.value;
-          return acc;
-        }, {} as Record<string, string>);
-        setEventMeta(metaObj);
-      }
-
-      // Fetch related events
-      const { data: relatedData } = await supabase
-        .from('events')
-        .select('*')
-        .eq('category', eventData.category)
-        .neq('id', eventData.id)
-        .limit(3);
-
-      if (relatedData) {
-        setRelatedEvents(relatedData);
-      }
-
-      // Check subscription status
-      if (user) {
-        const { data: subData } = await supabase
-          .from('event_subscriptions')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('event_id', eventData.id)
-          .single();
-
-        setIsSubscribed(!!subData);
-      }
-
-    } catch (error) {
-      console.error('Error fetching event details:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load event details",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [metaData]);
 
   const handleSubscribe = async () => {
     if (!user || !event) return;
 
-    const { error } = await supabase
-      .from('event_subscriptions')
-      .insert({
-        user_id: user.id,
-        event_id: event.id,
-        channels: ['email', 'push'],
-        lead_times: [1440, 60, 10] // 1 day, 1 hour, 10 minutes
-      });
-
-    if (error) {
-      toast({
-        title: "Subscription Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      setIsSubscribed(true);
-      toast({
-        title: "Subscribed Successfully",
-        description: "You'll receive notifications for this event.",
-      });
-    }
+    // Future: implement subscribe mutation
+    toast({
+      title: "Coming Soon",
+      description: "Event subscriptions will be available shortly.",
+    });
   };
 
   const handleDownloadICS = () => {
@@ -240,8 +185,8 @@ const EventDetailPage = () => {
     );
   }
 
-  const eventDateTime = new Date(event.start_ts_utc);
-  const userDateTime = convertToUserTimezone(event.start_ts_utc, 'Africa/Nairobi');
+  const eventDateTime = new Date(event.startTsUtc);
+  const userDateTime = convertToUserTimezone(event.startTsUtc.toString(), 'Africa/Nairobi');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -253,8 +198,8 @@ const EventDetailPage = () => {
           "@context": "https://schema.org",
           "@type": "Event",
           "name": event.title,
-          "startDate": event.start_ts_utc,
-          "endDate": event.end_ts_utc,
+          "startDate": new Date(event.startTsUtc).toISOString(),
+          "endDate": event.endTsUtc ? new Date(event.endTsUtc).toISOString() : undefined,
           "eventStatus": "https://schema.org/EventScheduled",
           "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
           "location": {
@@ -363,12 +308,12 @@ const EventDetailPage = () => {
                   <div>
                     <div className="font-semibold mb-2">Related Assets</div>
                     <div className="flex flex-wrap gap-2">
-                      {event.symbols.map((symbol) => (
+                      {event.symbols.map((symbol: string) => (
                         <Badge key={symbol} variant="secondary">
                           {symbol}
                         </Badge>
                       ))}
-                      {event.coins.map((coin) => (
+                      {event.coins.map((coin: string) => (
                         <Badge key={coin} variant="secondary" className="bg-accent/10">
                           {coin}
                         </Badge>
@@ -406,10 +351,10 @@ const EventDetailPage = () => {
                 {isSubscribed ? 'Subscribed' : 'Subscribe for Alerts'}
               </Button>
               
-              {event.source_url && (
+              {event.sourceUrl && (
                 <Button
                   variant="outline"
-                  onClick={() => window.open(event.source_url, '_blank')}
+                  onClick={() => window.open(event.sourceUrl, '_blank')}
                   className="flex-1"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -421,7 +366,7 @@ const EventDetailPage = () => {
         </Card>
 
         {/* Related Events */}
-        {relatedEvents.length > 0 && (
+        {relatedEvents && relatedEvents.length > 0 && (
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -433,7 +378,7 @@ const EventDetailPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {relatedEvents.map((relatedEvent) => (
                   <Card 
-                    key={relatedEvent.id}
+                    key={relatedEvent._id}
                     className="cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => navigate(`/events/${relatedEvent.slug}`)}
                   >
@@ -449,7 +394,7 @@ const EventDetailPage = () => {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="text-xs text-muted-foreground">
-                        {new Date(relatedEvent.start_ts_utc).toLocaleDateString()}
+                        {new Date(relatedEvent.startTsUtc).toLocaleDateString()}
                       </div>
                     </CardContent>
                   </Card>

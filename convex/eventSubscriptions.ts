@@ -40,7 +40,6 @@ export const subscribe = mutation({
       .first();
     if (existing) return existing._id;
     return ctx.db.insert("eventSubscriptions", {
-      supabaseId: `conv-${Date.now()}`,
       userId,
       eventId,
       channels,

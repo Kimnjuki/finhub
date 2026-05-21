@@ -6,6 +6,7 @@ import SmartCalculator from "@/components/SmartCalculator";
 import SEOHead from "@/components/SEOHead";
 import { MarketDataProvider } from "@/contexts/MarketDataContext";
 import LivePriceGrid from "@/components/market/LivePriceGrid";
+import NvidiaAIPanel from "@/components/NvidiaAIPanel";
 
 const Dashboard = () => {
   const structuredData = {
@@ -81,6 +82,11 @@ const Dashboard = () => {
             <div className="transform hover:scale-[1.02] transition-all duration-300">
               <SmartCalculator />
             </div>
+          </div>
+
+          {/* NVIDIA AI Market Analysis */}
+          <div className="mb-8">
+            <NvidiaAIPanel />
           </div>
 
           {/* Portfolio Overview */}

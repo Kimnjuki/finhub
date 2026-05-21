@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ interface EventManagementProps {
 const EventManagement = ({ onEventsUpdated }: EventManagementProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const createEventMutation = useMutation(api.events.create);
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -59,19 +61,17 @@ const EventManagement = ({ onEventsUpdated }: EventManagementProps) => {
       const dateStr = new Date(newEvent.start_ts_utc).toISOString().split('T')[0];
       const slug = `${baseSlug}-${dateStr}`;
 
-      const eventData = {
-        ...newEvent,
+      await createEventMutation({
+        title: newEvent.title,
+        description: newEvent.description,
+        category: newEvent.category,
+        impact: newEvent.impact,
+        startTsUtc: new Date(newEvent.start_ts_utc).getTime(),
         slug,
+        country: newEvent.country || undefined,
         symbols: newEvent.symbols ? newEvent.symbols.split(',').map(s => s.trim()) : [],
         coins: newEvent.coins ? newEvent.coins.split(',').map(c => c.trim()) : [],
-        start_ts_utc: new Date(newEvent.start_ts_utc).toISOString()
-      };
-
-      const { error } = await supabase
-        .from('events')
-        .insert(eventData);
-
-      if (error) throw error;
+      });
 
       toast({
         title: "Event Created",
@@ -106,14 +106,9 @@ const EventManagement = ({ onEventsUpdated }: EventManagementProps) => {
   const ingestFromAdapters = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        'https://psrfbrnxszyxjbhnnivs.supabase.co/functions/v1/event-adapters?action=ingest',
-        {
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzcmZicm54c3p5eGpiaG5uaXZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NTQxNTIsImV4cCI6MjA3MDIzMDE1Mn0.5XusZqsK3bYF-AsjxRjOqNu7l42S8bp7ud_WIPA55ts`
-          }
-        }
-      );
+      const response = await fetch('/api/ingest-events', {
+        method: 'POST',
+      });
 
       if (!response.ok) throw new Error('Failed to ingest events');
 

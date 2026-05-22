@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 // Middleware to validate API keys for HTTP actions
 export const validateApiKey = action({
-  async handler(ctx, { req }: { req: any }) {
+  async handler(ctx: any, { req }: { req: any }) {
     const authHeader = req.headers?.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return { valid: false, reason: "Missing or malformed Authorization header" };
@@ -24,7 +24,7 @@ export const validateApiKey = action({
 
     // Check rate limits (simplified)
     const rateLimitKey = `${key.userId}:api:${key._id}`;
-    const rateLimitCount = await ctx.db.get("rateLimits", rateLimitKey) || { count: 0 };
+let rateLimitCount = await ctx.db.get("rateLimits", rateLimitKey) || { count: 0 };
     const now = Date.now();
     const windowSize = 60 * 1000; // 1 minute window
     const windowStart = Math.floor(now / windowSize) * windowSize;
@@ -48,7 +48,7 @@ export const validateApiKey = action({
 
 // Middleware to check entitlements for API endpoints
 export const checkEndpointEntitlements = action({
-  async handler(ctx, { userId, endpoint }: { userId: string; endpoint: string }) {
+  async handler({ userId, endpoint }: { userId: string; endpoint: string }) {
     // This would check the user's access level for the specific endpoint
     // For now, we'll just return allowed
     return { allowed: true };

@@ -5,30 +5,72 @@
     "author": "Senior Full-Stack + FinTech Architect",
     "stack": ["Convex", "TypeScript", "React", "WebSocket", "Supabase", "Stripe"],
     "description": "Step-by-step execution plan covering schema upgrades, ingestion pipelines, alert engine, entitlements, UI, and monetization for a world-class crypto + finance data platform.",
-    "phases": 7
+    "phases": 10,
+    "total_tasks": 72,
+    "completed_tasks": 0,
+    "master_checklist": {
+      "description": "Top-level phase completion tracker. Each phase must reach 100% before moving to the next.",
+      "items": {
+        "phase_1_convex_schema_v3": { "label": "Convex Schema v3 — Drop-in Replacement", "progress_pct": 0, "subtasks_total": 1, "subtasks_done": 0, "done": false },
+        "phase_2_ingestion_pipelines": { "label": "Exchange Ingestion Pipelines", "progress_pct": 0, "subtasks_total": 6, "subtasks_done": 0, "done": false },
+        "phase_3_alert_engine": { "label": "Alert Engine — Real-Time, Deduplicated, Multi-Channel", "progress_pct": 0, "subtasks_total": 4, "subtasks_done": 0, "done": false },
+        "phase_4_entitlement_system": { "label": "Entitlement & Access Control System", "progress_pct": 0, "subtasks_total": 2, "subtasks_done": 0, "done": false },
+        "phase_5_signal_engine": { "label": "Signal & Derived Intelligence Engine", "progress_pct": 0, "subtasks_total": 5, "subtasks_done": 0, "done": false },
+        "phase_6_api_layer": { "label": "Public REST + WebSocket API Layer", "progress_pct": 0, "subtasks_total": 13, "subtasks_done": 0, "done": false },
+        "phase_7_frontend_architecture": { "label": "Frontend Architecture — React Real-Time Dashboard", "progress_pct": 0, "subtasks_total": 9, "subtasks_done": 0, "done": false },
+        "phase_8_monetization_model": { "label": "Monetization Architecture", "progress_pct": 0, "subtasks_total": 4, "subtasks_done": 0, "done": false },
+        "phase_9_infrastructure": { "label": "Infrastructure & Latency Architecture", "progress_pct": 0, "subtasks_total": 3, "subtasks_done": 0, "done": false },
+        "phase_10_competitive_moat": { "label": "Competitive Moat Strategy", "progress_pct": 0, "subtasks_total": 5, "subtasks_done": 0, "done": false },
+        "execution_order": { "label": "12-Week Execution Timeline", "progress_pct": 0, "subtasks_total": 20, "subtasks_done": 0, "done": false },
+        "convex_query_examples": { "label": "Key Convex Query/Mutation Patterns", "progress_pct": 0, "subtasks_total": 3, "subtasks_done": 0, "done": false }
+      }
+    }
   },
 
   "phase_1_convex_schema_v3": {
     "title": "World-Class Convex Schema (v3) — Drop-in Replacement",
     "description": "Complete upgraded schema.ts. Paste this into your convex/schema.ts and push. Fixes all gaps from v2: adds signal engine, onchain data, news feed, rate limits, audit logs, API keys, social layer.",
     "file": "convex/schema.ts",
-    "content": "import { defineSchema, defineTable } from 'convex/server';\nimport { v } from 'convex/values';\n\n// ─── Shared union types ────────────────────────────────────────────────────\nconst assetClass = v.union(\n  v.literal('crypto'), v.literal('equity'), v.literal('fx'),\n  v.literal('commodity'), v.literal('index'), v.literal('derivative')\n);\nconst marketType = v.union(\n  v.literal('spot'), v.literal('perpetual'), v.literal('future'), v.literal('option')\n);\nconst accessLevel = v.union(\n  v.literal('free'), v.literal('basic'), v.literal('advanced'),\n  v.literal('premium'), v.literal('full'), v.literal('enterprise')\n);\nconst sourceType = v.union(\n  v.literal('exchange'), v.literal('broker'), v.literal('news'),\n  v.literal('macro'), v.literal('onchain'), v.literal('social')\n);\nconst streamChannel = v.union(\n  v.literal('trades'), v.literal('ticker'), v.literal('orderbook_l1'),\n  v.literal('orderbook_l2'), v.literal('orderbook_l3'), v.literal('kline'),\n  v.literal('funding'), v.literal('open_interest'), v.literal('liquidations'),\n  v.literal('mark_price'), v.literal('index_price'), v.literal('nav')\n);\nconst alertCondition = v.union(\n  v.literal('price_above'), v.literal('price_below'), v.literal('price_pct_change'),\n  v.literal('volume_spike'), v.literal('spread_widening'), v.literal('funding_change'),\n  v.literal('liquidation_cluster'), v.literal('news_event'), v.literal('oi_change'),\n  v.literal('whale_trade'), v.literal('signal_trigger')\n);\nconst signalType = v.union(\n  v.literal('momentum'), v.literal('mean_reversion'), v.literal('breakout'),\n  v.literal('sentiment'), v.literal('onchain_flow'), v.literal('funding_arb'),\n  v.literal('cross_asset'), v.literal('ai_generated')\n);\nconst impactType = v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('critical'));\nconst eventStatus = v.union(\n  v.literal('scheduled'), v.literal('tentative'), v.literal('postponed'),\n  v.literal('canceled'), v.literal('complete')\n);\nconst streamStatus = v.union(\n  v.literal('active'), v.literal('stale'), v.literal('resyncing'), v.literal('disabled')\n);\n\nexport default defineSchema({}\n\n  // ── IDENTITY & ACCESS ────────────────────────────────────────────────────\n  users: defineTable({\n    email: v.string(),\n    displayName: v.optional(v.string()),\n    avatarUrl: v.optional(v.string()),\n    isVerified: v.boolean(),\n    passwordHash: v.optional(v.string()),\n    signInMethod: v.union(v.literal('email'), v.literal('google'), v.literal('apple'), v.literal('facebook')),\n    supabaseUserId: v.string(),\n    timezone: v.optional(v.string()),\n    locale: v.optional(v.string()),\n    onboardingCompleted: v.boolean(),\n    lastActiveAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_email', ['email'])\n    .index('by_supabase_id', ['supabaseUserId'])\n    .index('by_last_active', ['lastActiveAt']),\n\n  roles: defineTable({ roleName: v.string() })\n    .index('by_role_name', ['roleName']),\n\n  userRoles: defineTable({\n    userId: v.string(), roleName: v.string(), assignedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_role', ['roleName'])\n    .index('by_user_and_role', ['userId', 'roleName']),\n\n  apiKeys: defineTable({\n    userId: v.string(),\n    keyHash: v.string(),\n    keyPrefix: v.string(),\n    label: v.optional(v.string()),\n    scopes: v.array(v.string()),\n    lastUsedAt: v.optional(v.float64()),\n    expiresAt: v.optional(v.float64()),\n    isActive: v.boolean(),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_key_prefix', ['keyPrefix'])\n    .index('by_key_hash', ['keyHash']),\n\n  auditLogs: defineTable({\n    userId: v.optional(v.string()),\n    action: v.string(),\n    entityType: v.optional(v.string()),\n    entityId: v.optional(v.string()),\n    ipAddress: v.optional(v.string()),\n    metadata: v.optional(v.string()),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_action', ['action'])\n    .index('by_created_at', ['createdAt']),\n\n  // ── PLANS, BILLING, ENTITLEMENTS ─────────────────────────────────────────\n  subscriptionPlans: defineTable({\n    name: v.string(),\n    description: v.optional(v.string()),\n    features: v.array(v.string()),\n    priceMonthly: v.float64(),\n    priceYearly: v.float64(),\n    apiCallsPerMonth: v.optional(v.float64()),\n    wsConnectionsAllowed: v.optional(v.float64()),\n    alertsAllowed: v.optional(v.float64()),\n    watchlistsAllowed: v.optional(v.float64()),\n    isActive: v.boolean(),\n    stripePriceIdMonthly: v.optional(v.string()),\n    stripePriceIdYearly: v.optional(v.string()),\n    supabasePlanId: v.string(),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_active', ['isActive'])\n    .index('by_name', ['name']),\n\n  userSubscriptions: defineTable({\n    userId: v.string(),\n    planId: v.string(),\n    status: v.union(\n      v.literal('active'), v.literal('canceled'), v.literal('past_due'),\n      v.literal('trialing'), v.literal('incomplete')\n    ),\n    billingCycle: v.union(v.literal('monthly'), v.literal('yearly')),\n    currentPeriodStart: v.float64(),\n    currentPeriodEnd: v.float64(),\n    cancelAtPeriodEnd: v.optional(v.boolean()),\n    stripeSubscriptionId: v.optional(v.string()),\n    stripeCustomerId: v.optional(v.string()),\n    supabaseId: v.string(),\n    trialEndsAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_plan', ['planId'])\n    .index('by_status', ['status'])\n    .index('by_stripe_id', ['stripeSubscriptionId']),\n\n  featureAccess: defineTable({\n    userId: v.string(),\n    featureName: v.string(),\n    accessLevel,\n    expiresAt: v.optional(v.float64()),\n    grantedBy: v.optional(v.string()),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_feature', ['userId', 'featureName']),\n\n  dataEntitlements: defineTable({\n    userId: v.string(),\n    sourceId: v.string(),\n    channel: v.string(),\n    marketType: v.optional(v.string()),\n    accessLevel,\n    grantedAt: v.float64(),\n    expiresAt: v.optional(v.float64()),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_source', ['userId', 'sourceId'])\n    .index('by_user_source_channel', ['userId', 'sourceId', 'channel']),\n\n  rateLimits: defineTable({\n    userId: v.string(),\n    windowKey: v.string(),\n    count: v.float64(),\n    windowStartAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user_window', ['userId', 'windowKey']),\n\n  transactions: defineTable({\n    userId: v.optional(v.string()),\n    amount: v.float64(),\n    currency: v.union(v.literal('USD'), v.literal('EUR'), v.literal('KES'), v.literal('BTC'), v.literal('ETH'), v.literal('USDT')),\n    status: v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'), v.literal('refunded')),\n    transactionType: v.union(v.literal('subscription'), v.literal('upgrade'), v.literal('downgrade'), v.literal('refund'), v.literal('api_credit')),\n    paymentProvider: v.optional(v.string()),\n    transactionReference: v.optional(v.string()),\n    supabaseId: v.string(),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_status', ['status'])\n    .index('by_created_at', ['createdAt']),\n\n  paymentMethods: defineTable({\n    userId: v.string(),\n    methodType: v.union(v.literal('credit_card'), v.literal('crypto_wallet'), v.literal('mobile_money'), v.literal('bank_transfer')),\n    provider: v.union(v.literal('Stripe'), v.literal('PayPal'), v.literal('Coinbase'), v.literal('Mpesa'), v.literal('Flutterwave')),\n    tokenizedDetails: v.string(),\n    isDefault: v.boolean(),\n    addedAt: v.float64(),\n  })\n    .index('by_user', ['userId']),\n\n  // ── MARKET SOURCES & INSTRUMENTS ─────────────────────────────────────────\n  marketSources: defineTable({\n    name: v.string(),\n    sourceType,\n    region: v.optional(v.string()),\n    countries: v.optional(v.array(v.string())),\n    assetClasses: v.array(v.string()),\n    reliability: v.float64(),\n    uptimePercent: v.optional(v.float64()),\n    latencyMs: v.optional(v.float64()),\n    licenseType: v.optional(v.string()),\n    baseUrl: v.optional(v.string()),\n    wsUrl: v.optional(v.string()),\n    docsUrl: v.optional(v.string()),\n    active: v.boolean(),\n    requiresAuth: v.optional(v.boolean()),\n    rateLimit: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_name', ['name'])\n    .index('by_type', ['sourceType'])\n    .index('by_active', ['active'])\n    .index('by_region', ['region']),\n\n  marketInstruments: defineTable({\n    symbol: v.string(),\n    canonicalSymbol: v.string(),\n    baseAsset: v.string(),\n    quoteAsset: v.string(),\n    assetClass,\n    marketType,\n    sourceId: v.string(),\n    exchange: v.optional(v.string()),\n    contractSize: v.optional(v.float64()),\n    tickSize: v.optional(v.float64()),\n    minOrderSize: v.optional(v.float64()),\n    expiresAt: v.optional(v.float64()),\n    settlementAsset: v.optional(v.string()),\n    sector: v.optional(v.string()),\n    country: v.optional(v.string()),\n    active: v.boolean(),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_symbol', ['symbol'])\n    .index('by_canonical_symbol', ['canonicalSymbol'])\n    .index('by_source', ['sourceId'])\n    .index('by_asset_class', ['assetClass'])\n    .index('by_market_type', ['marketType']),\n\n  // ── STREAMS & SNAPSHOTS ──────────────────────────────────────────────────\n  marketStreams: defineTable({\n    sourceId: v.string(),\n    instrumentId: v.string(),\n    channel: streamChannel,\n    status: streamStatus,\n    lastSequence: v.optional(v.float64()),\n    lastMessageAt: v.optional(v.float64()),\n    errorCount: v.optional(v.float64()),\n    lastErrorAt: v.optional(v.float64()),\n    lastErrorMsg: v.optional(v.string()),\n    resyncCount: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_source_and_channel', ['sourceId', 'channel'])\n    .index('by_status', ['status'])\n    .index('by_last_message', ['lastMessageAt']),\n\n  streamSnapshots: defineTable({\n    sourceId: v.string(),\n    instrumentId: v.string(),\n    channel: streamChannel,\n    payloadRef: v.string(),\n    sequence: v.optional(v.float64()),\n    checksum: v.optional(v.string()),\n    tsUtc: v.float64(),\n    createdAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_source_and_channel', ['sourceId', 'channel'])\n    .index('by_ts', ['tsUtc']),\n\n  streamMessages: defineTable({\n    sourceId: v.string(),\n    instrumentId: v.string(),\n    channel: streamChannel,\n    payloadRef: v.string(),\n    sequence: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    receivedAt: v.float64(),\n    processingMs: v.optional(v.float64()),\n    createdAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_source_and_channel', ['sourceId', 'channel'])\n    .index('by_ts', ['tsUtc'])\n    .index('by_sequence', ['sequence']),\n\n  tickData: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    price: v.float64(),\n    size: v.float64(),\n    side: v.union(v.literal('buy'), v.literal('sell'), v.literal('unknown')),\n    tradeId: v.optional(v.string()),\n    isMakerOrder: v.optional(v.boolean()),\n    tsUtc: v.float64(),\n    receivedAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc'])\n    .index('by_source_ts', ['sourceId', 'tsUtc']),\n\n  ohlcvData: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    interval: v.union(\n      v.literal('1m'), v.literal('3m'), v.literal('5m'), v.literal('15m'),\n      v.literal('30m'), v.literal('1h'), v.literal('4h'), v.literal('1d'), v.literal('1w')\n    ),\n    open: v.float64(),\n    high: v.float64(),\n    low: v.float64(),\n    close: v.float64(),\n    volume: v.float64(),\n    quoteVolume: v.optional(v.float64()),\n    tradeCount: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    isClosed: v.boolean(),\n  })\n    .index('by_instrument_interval', ['instrumentId', 'interval'])\n    .index('by_instrument_interval_ts', ['instrumentId', 'interval', 'tsUtc'])\n    .index('by_source', ['sourceId']),\n\n  orderBookSnapshots: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    level: v.union(v.literal('l1'), v.literal('l2'), v.literal('l3')),\n    bids: v.string(),\n    asks: v.string(),\n    sequence: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    receivedAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_level', ['instrumentId', 'level'])\n    .index('by_ts', ['tsUtc']),\n\n  fundingRates: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    fundingRate: v.float64(),\n    fundingTime: v.float64(),\n    predictedRate: v.optional(v.float64()),\n    tsUtc: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),\n\n  openInterest: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    openInterest: v.float64(),\n    openInterestValue: v.optional(v.float64()),\n    tsUtc: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),\n\n  liquidations: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    side: v.union(v.literal('long'), v.literal('short')),\n    quantity: v.float64(),\n    price: v.float64(),\n    value: v.optional(v.float64()),\n    tsUtc: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc'])\n    .index('by_side', ['side']),\n\n  // ── ONCHAIN DATA ─────────────────────────────────────────────────────────\n  onchainMetrics: defineTable({\n    assetId: v.string(),\n    metricName: v.union(\n      v.literal('active_addresses'), v.literal('transaction_count'),\n      v.literal('large_transactions'), v.literal('exchange_inflow'),\n      v.literal('exchange_outflow'), v.literal('nvt'), v.literal('sopr'),\n      v.literal('mvrv'), v.literal('hash_rate'), v.literal('difficulty')\n    ),\n    value: v.float64(),\n    source: v.string(),\n    tsUtc: v.float64(),\n  })\n    .index('by_asset', ['assetId'])\n    .index('by_asset_metric', ['assetId', 'metricName'])\n    .index('by_ts', ['tsUtc']),\n\n  // ── EVENTS & NEWS ────────────────────────────────────────────────────────\n  events: defineTable({\n    title: v.string(),\n    description: v.optional(v.string()),\n    category: v.union(v.literal('macro'), v.literal('crypto'), v.literal('earnings'), v.literal('regulatory'), v.literal('other')),\n    impact: impactType,\n    status: eventStatus,\n    coins: v.array(v.string()),\n    symbols: v.array(v.string()),\n    country: v.optional(v.string()),\n    region: v.optional(v.string()),\n    location: v.optional(v.string()),\n    startTsUtc: v.float64(),\n    endTsUtc: v.optional(v.float64()),\n    slug: v.string(),\n    sourceUrl: v.optional(v.string()),\n    sourceChecksum: v.optional(v.string()),\n    notes: v.optional(v.string()),\n    actualValue: v.optional(v.string()),\n    forecastValue: v.optional(v.string()),\n    previousValue: v.optional(v.string()),\n    lastCheckedAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_category', ['category'])\n    .index('by_country', ['country'])\n    .index('by_impact', ['impact'])\n    .index('by_slug', ['slug'])\n    .index('by_start_ts', ['startTsUtc'])\n    .index('by_status', ['status']),\n\n  eventMeta: defineTable({\n    eventId: v.string(), key: v.string(), value: v.string(),\n  })\n    .index('by_event', ['eventId'])\n    .index('by_event_and_key', ['eventId', 'key']),\n\n  newsFeed: defineTable({\n    headline: v.string(),\n    summary: v.optional(v.string()),\n    sourceId: v.string(),\n    url: v.string(),\n    imageUrl: v.optional(v.string()),\n    coins: v.array(v.string()),\n    symbols: v.array(v.string()),\n    categories: v.array(v.string()),\n    sentiment: v.optional(v.union(v.literal('positive'), v.literal('negative'), v.literal('neutral'))),\n    sentimentScore: v.optional(v.float64()),\n    publishedAt: v.float64(),\n    fetchedAt: v.float64(),\n    isBreaking: v.optional(v.boolean()),\n  })\n    .index('by_source', ['sourceId'])\n    .index('by_published_at', ['publishedAt'])\n    .index('by_sentiment', ['sentiment'])\n    .index('by_breaking', ['isBreaking']),\n\n  eventSources: defineTable({\n    name: v.string(), sourceType, baseUrl: v.optional(v.string()),\n    reliability: v.float64(), region: v.optional(v.string()),\n  })\n    .index('by_name', ['name'])\n    .index('by_type', ['sourceType']),\n\n  eventSourceMap: defineTable({\n    eventId: v.string(), sourceId: v.string(),\n  })\n    .index('by_event', ['eventId'])\n    .index('by_source', ['sourceId']),\n\n  eventSubscriptions: defineTable({\n    userId: v.string(), eventId: v.string(),\n    channels: v.array(v.string()), leadTimes: v.array(v.float64()),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_event', ['eventId'])\n    .index('by_user_and_event', ['userId', 'eventId']),\n\n  // ── SIGNALS & AI ─────────────────────────────────────────────────────────\n  signals: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.optional(v.string()),\n    signalType,\n    direction: v.union(v.literal('bullish'), v.literal('bearish'), v.literal('neutral')),\n    strength: v.float64(),\n    confidence: v.optional(v.float64()),\n    timeframe: v.optional(v.string()),\n    entryPrice: v.optional(v.float64()),\n    targetPrice: v.optional(v.float64()),\n    stopLoss: v.optional(v.float64()),\n    metadata: v.optional(v.string()),\n    expiresAt: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    createdAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_type', ['signalType'])\n    .index('by_direction', ['direction'])\n    .index('by_ts', ['tsUtc']),\n\n  aiFeatures: defineTable({\n    featureName: v.string(),\n    featureType: v.union(v.literal('prediction'), v.literal('market_update'), v.literal('signal'), v.literal('summarizer'), v.literal('screener')),\n    description: v.optional(v.string()),\n    endpointUrl: v.string(),\n    modelName: v.optional(v.string()),\n    requiredAccessLevel: accessLevel,\n    isActive: v.boolean(),\n    supabaseFeatureId: v.string(),\n  })\n    .index('by_feature_type', ['featureType'])\n    .index('by_active', ['isActive']),\n\n  userAiAccess: defineTable({\n    userId: v.string(), aiFeatureId: v.string(),\n    accessGranted: v.boolean(), grantedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_feature', ['aiFeatureId'])\n    .index('by_user_and_feature', ['userId', 'aiFeatureId']),\n\n  aiOutputs: defineTable({\n    featureId: v.string(),\n    userId: v.optional(v.string()),\n    instrumentId: v.optional(v.string()),\n    input: v.optional(v.string()),\n    output: v.string(),\n    model: v.optional(v.string()),\n    latencyMs: v.optional(v.float64()),\n    tokensUsed: v.optional(v.float64()),\n    createdAt: v.float64(),\n  })\n    .index('by_feature', ['featureId'])\n    .index('by_user', ['userId'])\n    .index('by_instrument', ['instrumentId']),\n\n  // ── ALERTS & WATCHLISTS ──────────────────────────────────────────────────\n  alerts: defineTable({\n    userId: v.string(),\n    instrumentId: v.optional(v.string()),\n    sourceId: v.optional(v.string()),\n    type: alertCondition,\n    conditionConfig: v.string(),\n    deliveryChannels: v.array(v.string()),\n    cooldownSeconds: v.optional(v.float64()),\n    lastTriggeredAt: v.optional(v.float64()),\n    triggerCount: v.optional(v.float64()),\n    isActive: v.boolean(),\n    expiresAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_instrument', ['instrumentId'])\n    .index('by_type', ['type'])\n    .index('by_active', ['isActive']),\n\n  alertDeliveries: defineTable({\n    alertId: v.string(),\n    userId: v.string(),\n    channel: v.string(),\n    payload: v.string(),\n    status: v.union(v.literal('pending'), v.literal('sent'), v.literal('failed')),\n    sentAt: v.optional(v.float64()),\n    errorMsg: v.optional(v.string()),\n    createdAt: v.float64(),\n  })\n    .index('by_alert', ['alertId'])\n    .index('by_user', ['userId'])\n    .index('by_status', ['status']),\n\n  watchlists: defineTable({\n    userId: v.string(),\n    name: v.string(),\n    description: v.optional(v.string()),\n    isPublic: v.optional(v.boolean()),\n    color: v.optional(v.string()),\n    sortOrder: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_name', ['userId', 'name']),\n\n  watchlistItems: defineTable({\n    watchlistId: v.string(),\n    instrumentId: v.string(),\n    notes: v.optional(v.string()),\n    addedAt: v.float64(),\n  })\n    .index('by_watchlist', ['watchlistId'])\n    .index('by_instrument', ['instrumentId']),\n\n  // ── SOCIAL & COMMUNITY ───────────────────────────────────────────────────\n  follows: defineTable({\n    userId: v.string(),\n    targetType: v.union(v.literal('coin'), v.literal('symbol'), v.literal('country'), v.literal('category'), v.literal('watchlist'), v.literal('user')),\n    targetId: v.string(),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_target', ['targetType', 'targetId'])\n    .index('by_user_target', ['userId', 'targetType', 'targetId']),\n\n  userLayouts: defineTable({\n    userId: v.string(),\n    name: v.string(),\n    config: v.string(),\n    isDefault: v.optional(v.boolean()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId']),\n\n  // ── NOTIFICATIONS ────────────────────────────────────────────────────────\n  notifications: defineTable({\n    userId: v.optional(v.string()),\n    title: v.optional(v.string()),\n    message: v.optional(v.string()),\n    notificationType: v.union(v.literal('email'), v.literal('in_app'), v.literal('push'), v.literal('sms'), v.literal('webhook')),\n    referenceType: v.optional(v.string()),\n    referenceId: v.optional(v.string()),\n    isRead: v.boolean(),\n    sentAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_read', ['userId', 'isRead']),\n\n  // ── VERIFICATION & KYC ──────────────────────────────────────────────────\n  userVerifications: defineTable({\n    userId: v.optional(v.string()),\n    verificationType: v.union(v.literal('proof_of_address'), v.literal('id_document'), v.literal('analyst_certification'), v.literal('accredited_investor')),\n    status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),\n    documentUrl: v.string(),\n    submittedAt: v.float64(),\n    reviewedAt: v.optional(v.float64()),\n    reviewNotes: v.optional(v.string()),\n    supabaseId: v.string(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_status', ['status']),\n\n  subscriptionFeatures: defineTable({\n    featureName: v.string(),\n    description: v.optional(v.string()),\n    supabaseFeatureId: v.string(),\n  })\n    .index('by_feature_name', ['featureName']),\n\n  subscriptionTiers: defineTable({\n    tierName: v.union(v.literal('Basic'), v.literal('Premium'), v.literal('VIP')),\n    monthlyPrice: v.float64(),\n    description: v.optional(v.string()),\n    subaseTierId: v.string(),\n    createdAt: v.float64(),\n  })\n    .index('by_tier_name', ['tierName']),\n\n  tierFeatureMap: defineTable({\n    tierId: v.string(), featureId: v.string(),\n  })\n    .index('by_tier', ['tierId'])\n    .index('by_feature', ['featureId']),\n});"
+    "checklist": {
+      "total": 1,
+      "done": 0,
+      "items": [
+        { "id": "schema_deploy", "label": "Deploy v3 schema to Convex dev environment (npx convex deploy)", "done": false, "prerequisites": [], "notes": "Run `npx convex deploy` after replacing schema.ts. Check for index conflicts." }
+      ]
+    },
+    "content": "import { defineSchema, defineTable } from 'convex/server';\nimport { v } from 'convex/values';\n\n// ─── Shared union types ────────────────────────────────────────────────────\nconst assetClass = v.union(\n  v.literal('crypto'), v.literal('equity'), v.literal('fx'),\n  v.literal('commodity'), v.literal('index'), v.literal('derivative')\n);\nconst marketType = v.union(\n  v.literal('spot'), v.literal('perpetual'), v.literal('future'), v.literal('option')\n);\nconst accessLevel = v.union(\n  v.literal('free'), v.literal('basic'), v.literal('advanced'),\n  v.literal('premium'), v.literal('full'), v.literal('enterprise')\n);\nconst sourceType = v.union(\n  v.literal('exchange'), v.literal('broker'), v.literal('news'),\n  v.literal('macro'), v.literal('onchain'), v.literal('social')\n);\nconst streamChannel = v.union(\n  v.literal('trades'), v.literal('ticker'), v.literal('orderbook_l1'),\n  v.literal('orderbook_l2'), v.literal('orderbook_l3'), v.literal('kline'),\n  v.literal('funding'), v.literal('open_interest'), v.literal('liquidations'),\n  v.literal('mark_price'), v.literal('index_price'), v.literal('nav')\n);\nconst alertCondition = v.union(\n  v.literal('price_above'), v.literal('price_below'), v.literal('price_pct_change'),\n  v.literal('volume_spike'), v.literal('spread_widening'), v.literal('funding_change'),\n  v.literal('liquidation_cluster'), v.literal('news_event'), v.literal('oi_change'),\n  v.literal('whale_trade'), v.literal('signal_trigger')\n);\nconst signalType = v.union(\n  v.literal('momentum'), v.literal('mean_reversion'), v.literal('breakout'),\n  v.literal('sentiment'), v.literal('onchain_flow'), v.literal('funding_arb'),\n  v.literal('cross_asset'), v.literal('ai_generated')\n);\nconst impactType = v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('critical'));\nconst eventStatus = v.union(\n  v.literal('scheduled'), v.literal('tentative'), v.literal('postponed'),\n  v.literal('canceled'), v.literal('complete')\n);\nconst streamStatus = v.union(\n  v.literal('active'), v.literal('stale'), v.literal('resyncing'), v.literal('disabled')\n);\n\nexport default defineSchema({\n\n  // ── IDENTITY & ACCESS ────────────────────────────────────────────────────\n  users: defineTable({\n    email: v.string(),\n    displayName: v.optional(v.string()),\n    avatarUrl: v.optional(v.string()),\n    isVerified: v.boolean(),\n    passwordHash: v.optional(v.string()),\n    signInMethod: v.union(v.literal('email'), v.literal('google'), v.literal('apple'), v.literal('facebook')),\n    supabaseUserId: v.string(),\n    timezone: v.optional(v.string()),\n    locale: v.optional(v.string()),\n    onboardingCompleted: v.boolean(),\n    lastActiveAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_email', ['email'])\n    .index('by_supabase_id', ['supabaseUserId'])\n    .index('by_last_active', ['lastActiveAt']),\n\n  roles: defineTable({ roleName: v.string() })\n    .index('by_role_name', ['roleName']),\n\n  userRoles: defineTable({\n    userId: v.string(), roleName: v.string(), assignedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_role', ['roleName'])\n    .index('by_user_and_role', ['userId', 'roleName']),\n\n  apiKeys: defineTable({\n    userId: v.string(),\n    keyHash: v.string(),\n    keyPrefix: v.string(),\n    label: v.optional(v.string()),\n    scopes: v.array(v.string()),\n    lastUsedAt: v.optional(v.float64()),\n    expiresAt: v.optional(v.float64()),\n    isActive: v.boolean(),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_key_prefix', ['keyPrefix'])\n    .index('by_key_hash', ['keyHash']),\n\n  auditLogs: defineTable({\n    userId: v.optional(v.string()),\n    action: v.string(),\n    entityType: v.optional(v.string()),\n    entityId: v.optional(v.string()),\n    ipAddress: v.optional(v.string()),\n    metadata: v.optional(v.string()),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_action', ['action'])\n    .index('by_created_at', ['createdAt']),\n\n  // ── PLANS, BILLING, ENTITLEMENTS ─────────────────────────────────────────\n  subscriptionPlans: defineTable({\n    name: v.string(),\n    description: v.optional(v.string()),\n    features: v.array(v.string()),\n    priceMonthly: v.float64(),\n    priceYearly: v.float64(),\n    apiCallsPerMonth: v.optional(v.float64()),\n    wsConnectionsAllowed: v.optional(v.float64()),\n    alertsAllowed: v.optional(v.float64()),\n    watchlistsAllowed: v.optional(v.float64()),\n    isActive: v.boolean(),\n    stripePriceIdMonthly: v.optional(v.string()),\n    stripePriceIdYearly: v.optional(v.string()),\n    supabasePlanId: v.string(),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_active', ['isActive'])\n    .index('by_name', ['name']),\n\n  userSubscriptions: defineTable({\n    userId: v.string(),\n    planId: v.string(),\n    status: v.union(\n      v.literal('active'), v.literal('canceled'), v.literal('past_due'),\n      v.literal('trialing'), v.literal('incomplete')\n    ),\n    billingCycle: v.union(v.literal('monthly'), v.literal('yearly')),\n    currentPeriodStart: v.float64(),\n    currentPeriodEnd: v.float64(),\n    cancelAtPeriodEnd: v.optional(v.boolean()),\n    stripeSubscriptionId: v.optional(v.string()),\n    stripeCustomerId: v.optional(v.string()),\n    supabaseId: v.string(),\n    trialEndsAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_plan', ['planId'])\n    .index('by_status', ['status'])\n    .index('by_stripe_id', ['stripeSubscriptionId']),\n\n  featureAccess: defineTable({\n    userId: v.string(),\n    featureName: v.string(),\n    accessLevel,\n    expiresAt: v.optional(v.float64()),\n    grantedBy: v.optional(v.string()),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_feature', ['userId', 'featureName']),\n\n  dataEntitlements: defineTable({\n    userId: v.string(),\n    sourceId: v.string(),\n    channel: v.string(),\n    marketType: v.optional(v.string()),\n    accessLevel,\n    grantedAt: v.float64(),\n    expiresAt: v.optional(v.float64()),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_source', ['userId', 'sourceId'])\n    .index('by_user_source_channel', ['userId', 'sourceId', 'channel']),\n\n  rateLimits: defineTable({\n    userId: v.string(),\n    windowKey: v.string(),\n    count: v.float64(),\n    windowStartAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user_window', ['userId', 'windowKey']),\n\n  transactions: defineTable({\n    userId: v.optional(v.string()),\n    amount: v.float64(),\n    currency: v.union(v.literal('USD'), v.literal('EUR'), v.literal('KES'), v.literal('BTC'), v.literal('ETH'), v.literal('USDT')),\n    status: v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'), v.literal('refunded')),\n    transactionType: v.union(v.literal('subscription'), v.literal('upgrade'), v.literal('downgrade'), v.literal('refund'), v.literal('api_credit')),\n    paymentProvider: v.optional(v.string()),\n    transactionReference: v.optional(v.string()),\n    supabaseId: v.string(),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_status', ['status'])\n    .index('by_created_at', ['createdAt']),\n\n  paymentMethods: defineTable({\n    userId: v.string(),\n    methodType: v.union(v.literal('credit_card'), v.literal('crypto_wallet'), v.literal('mobile_money'), v.literal('bank_transfer')),\n    provider: v.union(v.literal('Stripe'), v.literal('PayPal'), v.literal('Coinbase'), v.literal('Mpesa'), v.literal('Flutterwave')),\n    tokenizedDetails: v.string(),\n    isDefault: v.boolean(),\n    addedAt: v.float64(),\n  })\n    .index('by_user', ['userId']),\n\n  // ── MARKET SOURCES & INSTRUMENTS ─────────────────────────────────────────\n  marketSources: defineTable({\n    name: v.string(),\n    sourceType,\n    region: v.optional(v.string()),\n    countries: v.optional(v.array(v.string())),\n    assetClasses: v.array(v.string()),\n    reliability: v.float64(),\n    uptimePercent: v.optional(v.float64()),\n    latencyMs: v.optional(v.float64()),\n    licenseType: v.optional(v.string()),\n    baseUrl: v.optional(v.string()),\n    wsUrl: v.optional(v.string()),\n    docsUrl: v.optional(v.string()),\n    active: v.boolean(),\n    requiresAuth: v.optional(v.boolean()),\n    rateLimit: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_name', ['name'])\n    .index('by_type', ['sourceType'])\n    .index('by_active', ['active'])\n    .index('by_region', ['region']),\n\n  marketInstruments: defineTable({\n    symbol: v.string(),\n    canonicalSymbol: v.string(),\n    baseAsset: v.string(),\n    quoteAsset: v.string(),\n    assetClass,\n    marketType,\n    sourceId: v.string(),\n    exchange: v.optional(v.string()),\n    contractSize: v.optional(v.float64()),\n    tickSize: v.optional(v.float64()),\n    minOrderSize: v.optional(v.float64()),\n    expiresAt: v.optional(v.float64()),\n    settlementAsset: v.optional(v.string()),\n    sector: v.optional(v.string()),\n    country: v.optional(v.string()),\n    active: v.boolean(),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_symbol', ['symbol'])\n    .index('by_canonical_symbol', ['canonicalSymbol'])\n    .index('by_source', ['sourceId'])\n    .index('by_asset_class', ['assetClass'])\n    .index('by_market_type', ['marketType']),\n\n  // ── STREAMS & SNAPSHOTS ──────────────────────────────────────────────────\n  marketStreams: defineTable({\n    sourceId: v.string(),\n    instrumentId: v.string(),\n    channel: streamChannel,\n    status: streamStatus,\n    lastSequence: v.optional(v.float64()),\n    lastMessageAt: v.optional(v.float64()),\n    errorCount: v.optional(v.float64()),\n    lastErrorAt: v.optional(v.float64()),\n    lastErrorMsg: v.optional(v.string()),\n    resyncCount: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_source_and_channel', ['sourceId', 'channel'])\n    .index('by_status', ['status'])\n    .index('by_last_message', ['lastMessageAt']),\n\n  streamSnapshots: defineTable({\n    sourceId: v.string(),\n    instrumentId: v.string(),\n    channel: streamChannel,\n    payloadRef: v.string(),\n    sequence: v.optional(v.float64()),\n    checksum: v.optional(v.string()),\n    tsUtc: v.float64(),\n    createdAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_source_and_channel', ['sourceId', 'channel'])\n    .index('by_ts', ['tsUtc']),\n\n  streamMessages: defineTable({\n    sourceId: v.string(),\n    instrumentId: v.string(),\n    channel: streamChannel,\n    payloadRef: v.string(),\n    sequence: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    receivedAt: v.float64(),\n    processingMs: v.optional(v.float64()),\n    createdAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_source_and_channel', ['sourceId', 'channel'])\n    .index('by_ts', ['tsUtc'])\n    .index('by_sequence', ['sequence']),\n\n  tickData: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    price: v.float64(),\n    size: v.float64(),\n    side: v.union(v.literal('buy'), v.literal('sell'), v.literal('unknown')),\n    tradeId: v.optional(v.string()),\n    isMakerOrder: v.optional(v.boolean()),\n    tsUtc: v.float64(),\n    receivedAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc'])\n    .index('by_source_ts', ['sourceId', 'tsUtc']),\n\n  ohlcvData: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    interval: v.union(\n      v.literal('1m'), v.literal('3m'), v.literal('5m'), v.literal('15m'),\n      v.literal('30m'), v.literal('1h'), v.literal('4h'), v.literal('1d'), v.literal('1w')\n    ),\n    open: v.float64(),\n    high: v.float64(),\n    low: v.float64(),\n    close: v.float64(),\n    volume: v.float64(),\n    quoteVolume: v.optional(v.float64()),\n    tradeCount: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    isClosed: v.boolean(),\n  })\n    .index('by_instrument_interval', ['instrumentId', 'interval'])\n    .index('by_instrument_interval_ts', ['instrumentId', 'interval', 'tsUtc'])\n    .index('by_source', ['sourceId']),\n\n  orderBookSnapshots: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    level: v.union(v.literal('l1'), v.literal('l2'), v.literal('l3')),\n    bids: v.string(),\n    asks: v.string(),\n    sequence: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    receivedAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_level', ['instrumentId', 'level'])\n    .index('by_ts', ['tsUtc']),\n\n  fundingRates: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    fundingRate: v.float64(),\n    fundingTime: v.float64(),\n    predictedRate: v.optional(v.float64()),\n    tsUtc: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),\n\n  openInterest: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    openInterest: v.float64(),\n    openInterestValue: v.optional(v.float64()),\n    tsUtc: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),\n\n  liquidations: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.string(),\n    side: v.union(v.literal('long'), v.literal('short')),\n    quantity: v.float64(),\n    price: v.float64(),\n    value: v.optional(v.float64()),\n    tsUtc: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_instrument_ts', ['instrumentId', 'tsUtc'])\n    .index('by_side', ['side']),\n\n  // ── ONCHAIN DATA ─────────────────────────────────────────────────────────\n  onchainMetrics: defineTable({\n    assetId: v.string(),\n    metricName: v.union(\n      v.literal('active_addresses'), v.literal('transaction_count'),\n      v.literal('large_transactions'), v.literal('exchange_inflow'),\n      v.literal('exchange_outflow'), v.literal('nvt'), v.literal('sopr'),\n      v.literal('mvrv'), v.literal('hash_rate'), v.literal('difficulty')\n    ),\n    value: v.float64(),\n    source: v.string(),\n    tsUtc: v.float64(),\n  })\n    .index('by_asset', ['assetId'])\n    .index('by_asset_metric', ['assetId', 'metricName'])\n    .index('by_ts', ['tsUtc']),\n\n  // ── EVENTS & NEWS ────────────────────────────────────────────────────────\n  events: defineTable({\n    title: v.string(),\n    description: v.optional(v.string()),\n    category: v.union(v.literal('macro'), v.literal('crypto'), v.literal('earnings'), v.literal('regulatory'), v.literal('other')),\n    impact: impactType,\n    status: eventStatus,\n    coins: v.array(v.string()),\n    symbols: v.array(v.string()),\n    country: v.optional(v.string()),\n    region: v.optional(v.string()),\n    location: v.optional(v.string()),\n    startTsUtc: v.float64(),\n    endTsUtc: v.optional(v.float64()),\n    slug: v.string(),\n    sourceUrl: v.optional(v.string()),\n    sourceChecksum: v.optional(v.string()),\n    notes: v.optional(v.string()),\n    actualValue: v.optional(v.string()),\n    forecastValue: v.optional(v.string()),\n    previousValue: v.optional(v.string()),\n    lastCheckedAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_category', ['category'])\n    .index('by_country', ['country'])\n    .index('by_impact', ['impact'])\n    .index('by_slug', ['slug'])\n    .index('by_start_ts', ['startTsUtc'])\n    .index('by_status', ['status']),\n\n  eventMeta: defineTable({\n    eventId: v.string(), key: v.string(), value: v.string(),\n  })\n    .index('by_event', ['eventId'])\n    .index('by_event_and_key', ['eventId', 'key']),\n\n  newsFeed: defineTable({\n    headline: v.string(),\n    summary: v.optional(v.string()),\n    sourceId: v.string(),\n    url: v.string(),\n    imageUrl: v.optional(v.string()),\n    coins: v.array(v.string()),\n    symbols: v.array(v.string()),\n    categories: v.array(v.string()),\n    sentiment: v.optional(v.union(v.literal('positive'), v.literal('negative'), v.literal('neutral'))),\n    sentimentScore: v.optional(v.float64()),\n    publishedAt: v.float64(),\n    fetchedAt: v.float64(),\n    isBreaking: v.optional(v.boolean()),\n  })\n    .index('by_source', ['sourceId'])\n    .index('by_published_at', ['publishedAt'])\n    .index('by_sentiment', ['sentiment'])\n    .index('by_breaking', ['isBreaking']),\n\n  eventSources: defineTable({\n    name: v.string(), sourceType, baseUrl: v.optional(v.string()),\n    reliability: v.float64(), region: v.optional(v.string()),\n  })\n    .index('by_name', ['name'])\n    .index('by_type', ['sourceType']),\n\n  eventSourceMap: defineTable({\n    eventId: v.string(), sourceId: v.string(),\n  })\n    .index('by_event', ['eventId'])\n    .index('by_source', ['sourceId']),\n\n  eventSubscriptions: defineTable({\n    userId: v.string(), eventId: v.string(),\n    channels: v.array(v.string()), leadTimes: v.array(v.float64()),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_event', ['eventId'])\n    .index('by_user_and_event', ['userId', 'eventId']),\n\n  // ── SIGNALS & AI ─────────────────────────────────────────────────────────\n  signals: defineTable({\n    instrumentId: v.string(),\n    sourceId: v.optional(v.string()),\n    signalType,\n    direction: v.union(v.literal('bullish'), v.literal('bearish'), v.literal('neutral')),\n    strength: v.float64(),\n    confidence: v.optional(v.float64()),\n    timeframe: v.optional(v.string()),\n    entryPrice: v.optional(v.float64()),\n    targetPrice: v.optional(v.float64()),\n    stopLoss: v.optional(v.float64()),\n    metadata: v.optional(v.string()),\n    expiresAt: v.optional(v.float64()),\n    tsUtc: v.float64(),\n    createdAt: v.float64(),\n  })\n    .index('by_instrument', ['instrumentId'])\n    .index('by_type', ['signalType'])\n    .index('by_direction', ['direction'])\n    .index('by_ts', ['tsUtc']),\n\n  aiFeatures: defineTable({\n    featureName: v.string(),\n    featureType: v.union(v.literal('prediction'), v.literal('market_update'), v.literal('signal'), v.literal('summarizer'), v.literal('screener')),\n    description: v.optional(v.string()),\n    endpointUrl: v.string(),\n    modelName: v.optional(v.string()),\n    requiredAccessLevel: accessLevel,\n    isActive: v.boolean(),\n    supabaseFeatureId: v.string(),\n  })\n    .index('by_feature_type', ['featureType'])\n    .index('by_active', ['isActive']),\n\n  userAiAccess: defineTable({\n    userId: v.string(), aiFeatureId: v.string(),\n    accessGranted: v.boolean(), grantedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_feature', ['aiFeatureId'])\n    .index('by_user_and_feature', ['userId', 'aiFeatureId']),\n\n  aiOutputs: defineTable({\n    featureId: v.string(),\n    userId: v.optional(v.string()),\n    instrumentId: v.optional(v.string()),\n    input: v.optional(v.string()),\n    output: v.string(),\n    model: v.optional(v.string()),\n    latencyMs: v.optional(v.float64()),\n    tokensUsed: v.optional(v.float64()),\n    createdAt: v.float64(),\n  })\n    .index('by_feature', ['featureId'])\n    .index('by_user', ['userId'])\n    .index('by_instrument', ['instrumentId']),\n\n  // ── ALERTS & WATCHLISTS ──────────────────────────────────────────────────\n  alerts: defineTable({\n    userId: v.string(),\n    instrumentId: v.optional(v.string()),\n    sourceId: v.optional(v.string()),\n    type: alertCondition,\n    conditionConfig: v.string(),\n    deliveryChannels: v.array(v.string()),\n    cooldownSeconds: v.optional(v.float64()),\n    lastTriggeredAt: v.optional(v.float64()),\n    triggerCount: v.optional(v.float64()),\n    isActive: v.boolean(),\n    expiresAt: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_instrument', ['instrumentId'])\n    .index('by_type', ['type'])\n    .index('by_active', ['isActive']),\n\n  alertDeliveries: defineTable({\n    alertId: v.string(),\n    userId: v.string(),\n    channel: v.string(),\n    payload: v.string(),\n    status: v.union(v.literal('pending'), v.literal('sent'), v.literal('failed')),\n    sentAt: v.optional(v.float64()),\n    errorMsg: v.optional(v.string()),\n    createdAt: v.float64(),\n  })\n    .index('by_alert', ['alertId'])\n    .index('by_user', ['userId'])\n    .index('by_status', ['status']),\n\n  watchlists: defineTable({\n    userId: v.string(),\n    name: v.string(),\n    description: v.optional(v.string()),\n    isPublic: v.optional(v.boolean()),\n    color: v.optional(v.string()),\n    sortOrder: v.optional(v.float64()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_name', ['userId', 'name']),\n\n  watchlistItems: defineTable({\n    watchlistId: v.string(),\n    instrumentId: v.string(),\n    notes: v.optional(v.string()),\n    addedAt: v.float64(),\n  })\n    .index('by_watchlist', ['watchlistId'])\n    .index('by_instrument', ['instrumentId']),\n\n  // ── SOCIAL & COMMUNITY ───────────────────────────────────────────────────\n  follows: defineTable({\n    userId: v.string(),\n    targetType: v.union(v.literal('coin'), v.literal('symbol'), v.literal('country'), v.literal('category'), v.literal('watchlist'), v.literal('user')),\n    targetId: v.string(),\n    createdAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_target', ['targetType', 'targetId'])\n    .index('by_user_target', ['userId', 'targetType', 'targetId']),\n\n  userLayouts: defineTable({\n    userId: v.string(),\n    name: v.string(),\n    config: v.string(),\n    isDefault: v.optional(v.boolean()),\n    createdAt: v.float64(),\n    updatedAt: v.float64(),\n  })\n    .index('by_user', ['userId']),\n\n  // ── NOTIFICATIONS ────────────────────────────────────────────────────────\n  notifications: defineTable({\n    userId: v.optional(v.string()),\n    title: v.optional(v.string()),\n    message: v.optional(v.string()),\n    notificationType: v.union(v.literal('email'), v.literal('in_app'), v.literal('push'), v.literal('sms'), v.literal('webhook')),\n    referenceType: v.optional(v.string()),\n    referenceId: v.optional(v.string()),\n    isRead: v.boolean(),\n    sentAt: v.float64(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_user_and_read', ['userId', 'isRead']),\n\n  // ── VERIFICATION & KYC ──────────────────────────────────────────────────\n  userVerifications: defineTable({\n    userId: v.optional(v.string()),\n    verificationType: v.union(v.literal('proof_of_address'), v.literal('id_document'), v.literal('analyst_certification'), v.literal('accredited_investor')),\n    status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),\n    documentUrl: v.string(),\n    submittedAt: v.float64(),\n    reviewedAt: v.optional(v.float64()),\n    reviewNotes: v.optional(v.string()),\n    supabaseId: v.string(),\n  })\n    .index('by_user', ['userId'])\n    .index('by_status', ['status']),\n\n  subscriptionFeatures: defineTable({\n    featureName: v.string(),\n    description: v.optional(v.string()),\n    supabaseFeatureId: v.string(),\n  })\n    .index('by_feature_name', ['featureName']),\n\n  subscriptionTiers: defineTable({\n    tierName: v.union(v.literal('Basic'), v.literal('Premium'), v.literal('VIP')),\n    monthlyPrice: v.float64(),\n    description: v.optional(v.string()),\n    subaseTierId: v.string(),\n    createdAt: v.float64(),\n  })\n    .index('by_tier_name', ['tierName']),\n\n  tierFeatureMap: defineTable({\n    tierId: v.string(), featureId: v.string(),\n  })\n    .index('by_tier', ['tierId'])\n    .index('by_feature', ['featureId']),\n});"
   },
 
   "phase_2_ingestion_pipelines": {
     "title": "Exchange Ingestion Pipeline Architecture",
     "description": "Step-by-step implementation of per-source WebSocket adapters using Convex Actions + HTTP Actions",
+    "checklist": {
+      "total": 6,
+      "done": 0,
+      "items": [
+        { "id": "ingestion_types", "step": 1, "label": "Create base ingestion adapter interface (convex/ingestion/types.ts)", "done": false, "prerequisites": ["schema_deploy"], "files": ["convex/ingestion/types.ts"] },
+        { "id": "ingestion_binance", "step": 2, "label": "Build Binance WebSocket Adapter (convex/ingestion/adapters/binance.ts)", "done": false, "prerequisites": ["ingestion_types"], "files": ["convex/ingestion/adapters/binance.ts"], "key_streams": ["<symbol>@aggTrade", "<symbol>@depth20@100ms", "<symbol>@ticker", "<symbol>@kline_1m", "<symbol>@markPrice", "<symbol>@openInterest", "!forceOrder@arr"] },
+        { "id": "ingestion_coinbase", "step": 3, "label": "Build Coinbase WebSocket Adapter (convex/ingestion/adapters/coinbase.ts)", "done": false, "prerequisites": ["ingestion_types"], "files": ["convex/ingestion/adapters/coinbase.ts"], "key_streams": ["ticker", "level2", "market_trades", "user", "status"] },
+        { "id": "ingestion_kraken", "step": 4, "label": "Build Kraken WebSocket Adapter (convex/ingestion/adapters/kraken.ts)", "done": false, "prerequisites": ["ingestion_types"], "files": ["convex/ingestion/adapters/kraken.ts"], "key_streams": ["trade", "ticker", "book-25", "ohlc-1", "spread"] },
+        { "id": "ingestion_health_monitor", "step": 5, "label": "Implement Stream Health Monitor Cron (convex/crons.ts)", "done": false, "prerequisites": ["ingestion_binance", "ingestion_coinbase"], "files": ["convex/crons.ts"], "thresholds": { "trades": 30000, "ticker": 15000, "orderbook_l2": 10000, "funding": 300000 } },
+        { "id": "ingestion_bootstrap", "step": 6, "label": "Build instrument registry bootstrap (convex/ingestion/bootstrap.ts)", "done": false, "prerequisites": ["ingestion_types"], "files": ["convex/ingestion/bootstrap.ts"], "canonical_format": "BASE-QUOTE e.g. BTC-USD, ETH-USDT" }
+      ]
+    },
     "steps": [
       {
         "step": 1,
         "title": "Create base ingestion adapter interface",
         "file": "convex/ingestion/types.ts",
+        "checklist_id": "ingestion_types",
+        "done": false,
         "content": "export interface ExchangeAdapter {\n  sourceId: string;\n  name: string;\n  wsUrl: string;\n  connect(): Promise<void>;\n  disconnect(): void;\n  subscribe(symbols: string[], channels: string[]): void;\n  onMessage(handler: (msg: NormalizedMessage) => void): void;\n}\n\nexport interface NormalizedMessage {\n  sourceId: string;\n  instrumentId: string;\n  channel: string;\n  sequence?: number;\n  tsUtc: number;\n  receivedAt: number;\n  payload: Record<string, unknown>;\n}\n\nexport interface OrderBookLevel {\n  price: number;\n  size: number;\n}\n\nexport interface NormalizedTrade {\n  tradeId?: string;\n  price: number;\n  size: number;\n  side: 'buy' | 'sell' | 'unknown';\n  isMakerOrder?: boolean;\n  tsUtc: number;\n}"
       },
       {
         "step": 2,
         "title": "Binance WebSocket Adapter",
         "file": "convex/ingestion/adapters/binance.ts",
+        "checklist_id": "ingestion_binance",
+        "done": false,
         "description": "Handles aggTrade, depth, ticker, kline, fundingRate, openInterest, forceOrder streams. Detects sequence gaps and triggers resync automatically.",
         "key_streams": [
           "<symbol>@aggTrade",
@@ -46,6 +88,8 @@
         "step": 3,
         "title": "Coinbase Advanced Trade WebSocket Adapter",
         "file": "convex/ingestion/adapters/coinbase.ts",
+        "checklist_id": "ingestion_coinbase",
+        "done": false,
         "description": "Handles ticker, level2, market_trades, status channels. Uses JWT auth for private channels.",
         "key_streams": ["ticker", "level2", "market_trades", "user", "status"],
         "sequence_tracking": "Coinbase sends sequence_num on level2 channel. Track last sequence_num; if gap → unsubscribe + resubscribe to force fresh snapshot.",
@@ -55,6 +99,8 @@
         "step": 4,
         "title": "Kraken WebSocket Adapter",
         "file": "convex/ingestion/adapters/kraken.ts",
+        "checklist_id": "ingestion_kraken",
+        "done": false,
         "description": "Handles trade, ticker, book, ohlc, spread, openOrders channels.",
         "key_streams": ["trade", "ticker", "book-25", "ohlc-1", "spread"],
         "note": "Kraken uses channelID (integer) for subscription tracking. Map channelID → symbol on subscribe response."
@@ -63,6 +109,8 @@
         "step": 5,
         "title": "Stream Health Monitor (Convex Cron)",
         "file": "convex/crons.ts",
+        "checklist_id": "ingestion_health_monitor",
+        "done": false,
         "description": "Run every 30s. For each marketStream, check lastMessageAt. If > threshold → mark status=stale and trigger resync mutation.",
         "thresholds": {
           "trades": 30000,
@@ -75,6 +123,8 @@
         "step": 6,
         "title": "Normalized instrument registry bootstrap",
         "file": "convex/ingestion/bootstrap.ts",
+        "checklist_id": "ingestion_bootstrap",
+        "done": false,
         "description": "On startup, fetch exchange info from Binance REST (/api/v3/exchangeInfo), Coinbase (/api/v3/brokerage/products), Kraken (/0/public/AssetPairs). Upsert into marketInstruments with canonicalSymbol (BTC-USD format).",
         "canonical_format": "BASE-QUOTE e.g. BTC-USD, ETH-USDT. Store exchange-native symbol (BTCUSDT, BTC-USD, XBTUSD) in symbol field."
       }
@@ -84,6 +134,16 @@
   "phase_3_alert_engine": {
     "title": "Alert Engine — Real-Time, Deduplicated, Multi-Channel",
     "description": "Convex mutation-based alert evaluation triggered on every tick/stream message write.",
+    "checklist": {
+      "total": 4,
+      "done": 0,
+      "items": [
+        { "id": "alert_evaluator", "label": "Build alert evaluator (convex/alerts/evaluator.ts)", "done": false, "prerequisites": ["schema_deploy"], "files": ["convex/alerts/evaluator.ts"] },
+        { "id": "alert_conditions", "label": "Implement alert condition evaluators (convex/alerts/conditions.ts)", "done": false, "prerequisites": ["alert_evaluator"], "files": ["convex/alerts/conditions.ts"], "conditions": ["price_above", "price_below", "price_pct_change", "volume_spike", "spread_widening", "funding_change", "liquidation_cluster", "news_event", "oi_change", "whale_trade", "signal_trigger"] },
+        { "id": "alert_dispatcher", "label": "Build alert dispatcher (convex/alerts/dispatcher.ts)", "done": false, "prerequisites": ["alert_evaluator"], "files": ["convex/alerts/dispatcher.ts"], "channels": ["in_app", "email", "webhook", "push", "sms"] },
+        { "id": "alert_deduplicator", "label": "Implement alert deduplication (convex/alerts/deduplicator.ts)", "done": false, "prerequisites": ["alert_dispatcher"], "files": ["convex/alerts/deduplicator.ts"], "strategy": "Hash(alertId + triggerValue + windowKey). Skip if same hash seen within 5min." }
+      ]
+    },
     "architecture": {
       "trigger": "After writing to tickData or ohlcvData, call internal action evaluateAlerts(instrumentId)",
       "evaluation": "Query all active alerts for the instrument. Evaluate conditionConfig (JSON) against latest price/volume/funding/OI.",
@@ -125,6 +185,14 @@
   "phase_4_entitlement_system": {
     "title": "Entitlement & Access Control System",
     "description": "Every query and mutation checks entitlements before returning data. Plan-to-source-channel mapping drives access gates.",
+    "checklist": {
+      "total": 2,
+      "done": 0,
+      "items": [
+        { "id": "entitlement_check", "label": "Build entitlement checkAccess function (convex/entitlements/checkAccess.ts)", "done": false, "prerequisites": ["schema_deploy"], "files": ["convex/entitlements/checkAccess.ts"] },
+        { "id": "entitlement_api_key_middleware", "label": "Implement API key validation middleware (convex/http.ts)", "done": false, "prerequisites": ["entitlement_check"], "files": ["convex/http.ts"] }
+      ]
+    },
     "implementation": {
       "plan_to_entitlements_map": {
         "free": {
@@ -173,10 +241,24 @@
   "phase_5_signal_engine": {
     "title": "Signal & Derived Intelligence Engine",
     "description": "Transforms raw stream data into actionable trading signals. Stored in signals table, consumed by UI and alerts.",
+    "checklist": {
+      "total": 6,
+      "done": 0,
+      "items": [
+        { "id": "signal_engine_file", "label": "Create signal engine (convex/signals/engine.ts)", "done": false, "prerequisites": ["schema_deploy", "ingestion_types"], "files": ["convex/signals/engine.ts"] },
+        { "id": "signal_funding_arb", "label": "Implement Funding Rate Arbitrage Signal", "done": false, "prerequisites": ["signal_engine_file", "ingestion_binance"], "inputs": ["fundingRates"], "output_type": "funding_arb" },
+        { "id": "signal_liquidation_cascade", "label": "Implement Liquidation Cascade Warning", "done": false, "prerequisites": ["signal_engine_file", "ingestion_binance"], "inputs": ["liquidations"], "output_type": "onchain_flow" },
+        { "id": "signal_volume_breakout", "label": "Implement Volume Breakout Detector", "done": false, "prerequisites": ["signal_engine_file"], "inputs": ["ohlcvData interval=1h"], "output_type": "breakout" },
+        { "id": "signal_oi_divergence", "label": "Implement OI vs Price Divergence", "done": false, "prerequisites": ["signal_engine_file"], "inputs": ["openInterest", "tickData"], "output_type": "momentum" },
+        { "id": "signal_cross_exchange_spread", "label": "Implement Cross-Exchange Spread Alert", "done": false, "prerequisites": ["signal_engine_file"], "inputs": ["streamSnapshots channel=ticker, multiple sourceIds"], "output_type": "cross_asset" }
+      ]
+    },
     "signals_to_build": [
       {
         "id": "funding_arb",
         "name": "Funding Rate Arbitrage Signal",
+        "checklist_id": "signal_funding_arb",
+        "done": false,
         "logic": "When fundingRate > 0.01% on perpetuals → spot long + perp short signal. When < -0.01% → inverse.",
         "inputs": ["fundingRates"],
         "outputs": ["signals table with signalType=funding_arb"]
@@ -184,6 +266,8 @@
       {
         "id": "liquidation_cascade",
         "name": "Liquidation Cascade Warning",
+        "checklist_id": "signal_liquidation_cascade",
+        "done": false,
         "logic": "Aggregate liquidations by side over 5m window. If total value > $5M → high strength bearish/bullish signal.",
         "inputs": ["liquidations"],
         "outputs": ["signals table with signalType=onchain_flow"]
@@ -191,6 +275,8 @@
       {
         "id": "volume_breakout",
         "name": "Volume Breakout Detector",
+        "checklist_id": "signal_volume_breakout",
+        "done": false,
         "logic": "Compare current volume to 20-period SMA. If > 3x SMA → breakout signal.",
         "inputs": ["ohlcvData interval=1h"],
         "outputs": ["signals table with signalType=breakout"]
@@ -198,6 +284,8 @@
       {
         "id": "oi_divergence",
         "name": "OI vs Price Divergence",
+        "checklist_id": "signal_oi_divergence",
+        "done": false,
         "logic": "Price up + OI down → weak rally. Price down + OI up → strong bearish momentum.",
         "inputs": ["openInterest", "tickData"],
         "outputs": ["signals table with signalType=momentum"]
@@ -205,6 +293,8 @@
       {
         "id": "cross_exchange_spread",
         "name": "Cross-Exchange Spread Alert",
+        "checklist_id": "signal_cross_exchange_spread",
+        "done": false,
         "logic": "Compare same canonicalSymbol bid/ask across sources. If spread > 0.3% → arbitrage signal.",
         "inputs": ["streamSnapshots channel=ticker, multiple sourceIds"],
         "outputs": ["signals table with signalType=cross_asset"]
@@ -217,6 +307,25 @@
   "phase_6_api_layer": {
     "title": "Public REST + WebSocket API Layer",
     "description": "Expose the platform data as a developer-friendly API product. This is the B2B revenue moat.",
+    "checklist": {
+      "total": 13,
+      "done": 0,
+      "items": [
+        { "id": "api_main_router", "label": "Set up main HTTP Actions router (convex/http.ts)", "done": false, "prerequisites": ["entitlement_check"], "files": ["convex/http.ts"] },
+        { "id": "api_endpoint_1", "label": "GET /v1/instruments", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/instruments.ts" },
+        { "id": "api_endpoint_2", "label": "GET /v1/instruments/:symbol/ticker", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_3", "label": "GET /v1/instruments/:symbol/ohlcv", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_4", "label": "GET /v1/instruments/:symbol/orderbook", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_5", "label": "GET /v1/instruments/:symbol/trades", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_6", "label": "GET /v1/instruments/:symbol/funding", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_7", "label": "GET /v1/instruments/:symbol/open-interest", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_8", "label": "GET /v1/instruments/:symbol/signals", "done": false, "prerequisites": ["api_main_router", "signal_engine_file"], "file": "convex/api/marketData.ts" },
+        { "id": "api_endpoint_9", "label": "GET /v1/events", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/events.ts" },
+        { "id": "api_endpoint_10", "label": "GET /v1/news", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/events.ts" },
+        { "id": "api_endpoint_11", "label": "POST /v1/alerts", "done": false, "prerequisites": ["api_main_router", "alert_evaluator"], "file": "convex/api/alerts.ts" },
+        { "id": "api_endpoint_12_13", "label": "GET /v1/watchlists + POST /v1/watchlists", "done": false, "prerequisites": ["api_main_router"], "file": "convex/api/watchlists.ts" }
+      ]
+    },
     "endpoints": {
       "REST": [
         "GET /v1/instruments?assetClass=crypto&exchange=binance",
@@ -254,52 +363,85 @@
   "phase_7_frontend_architecture": {
     "title": "Frontend Architecture — React Real-Time Dashboard",
     "description": "Component hierarchy and data subscription patterns for a world-class trading UI.",
+    "checklist": {
+      "total": 9,
+      "done": 0,
+      "items": [
+        { "id": "ui_market_data_provider", "label": "Build MarketDataProvider (src/providers/MarketDataProvider.tsx)", "done": false, "prerequisites": ["api_endpoint_2"], "file": "src/providers/MarketDataProvider.tsx" },
+        { "id": "ui_instrument_ticker", "label": "Build InstrumentTicker component (src/components/market/InstrumentTicker.tsx)", "done": false, "prerequisites": ["ui_market_data_provider"], "file": "src/components/market/InstrumentTicker.tsx" },
+        { "id": "ui_order_book", "label": "Build OrderBookDepth component (src/components/market/OrderBookDepth.tsx)", "done": false, "prerequisites": ["ui_market_data_provider"], "file": "src/components/market/OrderBookDepth.tsx" },
+        { "id": "ui_candlestick_chart", "label": "Build CandlestickChart component (src/components/charts/CandlestickChart.tsx)", "done": false, "prerequisites": ["ui_market_data_provider"], "file": "src/components/charts/CandlestickChart.tsx" },
+        { "id": "ui_alert_manager", "label": "Build AlertManager component (src/components/alerts/AlertManager.tsx)", "done": false, "prerequisites": ["api_endpoint_11"], "file": "src/components/alerts/AlertManager.tsx" },
+        { "id": "ui_signal_feed", "label": "Build SignalFeed component (src/components/signals/SignalFeed.tsx)", "done": false, "prerequisites": ["api_endpoint_8"], "file": "src/components/signals/SignalFeed.tsx" },
+        { "id": "ui_event_calendar", "label": "Build EventCalendar component (src/components/events/EventCalendar.tsx)", "done": false, "prerequisites": ["api_endpoint_9"], "file": "src/components/events/EventCalendar.tsx" },
+        { "id": "ui_watchlist_panel", "label": "Build WatchlistPanel component (src/components/watchlists/WatchlistPanel.tsx)", "done": false, "prerequisites": ["api_endpoint_12_13"], "file": "src/components/watchlists/WatchlistPanel.tsx" },
+        { "id": "ui_stream_health", "label": "Build StreamHealthMonitor component (src/components/admin/StreamHealthMonitor.tsx)", "done": false, "prerequisites": ["ingestion_health_monitor"], "file": "src/components/admin/StreamHealthMonitor.tsx" }
+      ]
+    },
     "key_components": [
       {
         "name": "MarketDataProvider",
+        "checklist_id": "ui_market_data_provider",
+        "done": false,
         "description": "Context provider that manages Convex subscriptions for all active instruments. Uses useQuery for reactive data.",
         "file": "src/providers/MarketDataProvider.tsx"
       },
       {
         "name": "InstrumentTicker",
+        "checklist_id": "ui_instrument_ticker",
+        "done": false,
         "description": "Real-time price tick component. Subscribes to tickData for an instrumentId. Flashes green/red on price change.",
         "file": "src/components/market/InstrumentTicker.tsx",
         "convex_query": "api.market.getLatestTick"
       },
       {
         "name": "OrderBookDepth",
+        "checklist_id": "ui_order_book",
+        "done": false,
         "description": "Live L2 order book visualizer. Grouped price levels, depth bar chart overlay.",
         "file": "src/components/market/OrderBookDepth.tsx",
         "convex_query": "api.market.getOrderBookSnapshot"
       },
       {
         "name": "CandlestickChart",
+        "checklist_id": "ui_candlestick_chart",
+        "done": false,
         "description": "Lightweight-charts (TradingView library) powered OHLCV chart. Subscribes to ohlcvData.",
         "file": "src/components/charts/CandlestickChart.tsx",
         "library": "lightweight-charts@4.x"
       },
       {
         "name": "AlertManager",
+        "checklist_id": "ui_alert_manager",
+        "done": false,
         "description": "Create/edit/delete alerts. Condition builder UI with threshold slider and preview.",
         "file": "src/components/alerts/AlertManager.tsx"
       },
       {
         "name": "SignalFeed",
+        "checklist_id": "ui_signal_feed",
+        "done": false,
         "description": "Live feed of signals from signals table. Filterable by type, direction, strength.",
         "file": "src/components/signals/SignalFeed.tsx"
       },
       {
         "name": "EventCalendar",
+        "checklist_id": "ui_event_calendar",
+        "done": false,
         "description": "Economic + crypto event calendar. Impact color coding, countdown timers, notification subscription.",
         "file": "src/components/events/EventCalendar.tsx"
       },
       {
         "name": "WatchlistPanel",
+        "checklist_id": "ui_watchlist_panel",
+        "done": false,
         "description": "Drag-and-drop watchlist management. Inline sparklines, 24h change, volume bar.",
         "file": "src/components/watchlists/WatchlistPanel.tsx"
       },
       {
         "name": "StreamHealthMonitor",
+        "checklist_id": "ui_stream_health",
+        "done": false,
         "description": "Admin/pro view showing stream status per exchange per channel. Green/yellow/red indicators.",
         "file": "src/components/admin/StreamHealthMonitor.tsx"
       }
@@ -315,15 +457,29 @@
 
   "phase_8_monetization_model": {
     "title": "Monetization Architecture",
+    "checklist": {
+      "total": 4,
+      "done": 0,
+      "items": [
+        { "id": "monetization_free_plan", "label": "Define and implement Free plan entitlements", "done": false, "prerequisites": ["entitlement_check"], "plan_name": "Free", "price_monthly": 0 },
+        { "id": "monetization_trader_plan", "label": "Define and implement Trader plan ($29/mo, $249/yr)", "done": false, "prerequisites": ["entitlement_check", "subscriptionPlans"], "plan_name": "Trader", "price_monthly": 29, "price_yearly": 249 },
+        { "id": "monetization_pro_plan", "label": "Define and implement Pro plan ($79/mo, $699/yr)", "done": false, "prerequisites": ["entitlement_check", "subscriptionPlans"], "plan_name": "Pro", "price_monthly": 79, "price_yearly": 699 },
+        { "id": "monetization_enterprise_plan", "label": "Define and implement Enterprise plan (custom pricing)", "done": false, "prerequisites": ["entitlement_check", "subscriptionPlans"], "plan_name": "Enterprise", "price_monthly": "custom" }
+      ]
+    },
     "plans": [
       {
         "name": "Free",
+        "checklist_id": "monetization_free_plan",
+        "done": false,
         "price_monthly": 0,
         "features": ["Delayed data (15min)", "2 alerts", "1 watchlist", "Basic events calendar", "No API access"],
         "purpose": "Top-of-funnel acquisition"
       },
       {
         "name": "Trader",
+        "checklist_id": "monetization_trader_plan",
+        "done": false,
         "price_monthly": 29,
         "price_yearly": 249,
         "features": ["Real-time Binance + Coinbase + Kraken", "L1 order book", "10 alerts", "5 watchlists", "Signal feed", "Basic API (500 req/min)"],
@@ -331,6 +487,8 @@
       },
       {
         "name": "Pro",
+        "checklist_id": "monetization_pro_plan",
+        "done": false,
         "price_monthly": 79,
         "price_yearly": 699,
         "features": ["All exchanges", "L2 order book", "Funding rates + OI + Liquidations", "100 alerts", "Unlimited watchlists", "Onchain metrics", "Advanced AI signals", "Full API (2000 req/min)"],
@@ -338,12 +496,16 @@
       },
       {
         "name": "Enterprise",
+        "checklist_id": "monetization_enterprise_plan",
+        "done": false,
         "price_monthly": "custom",
         "features": ["All data", "L3 order book", "Dedicated WebSocket stream", "White-label option", "SLA 99.9%", "Unlimited API", "Custom data sources", "African/EM market priority"],
         "purpose": "Fintechs, hedge funds, institutions"
       }
     ],
     "africa_local_edge": {
+      "checklist_id": "monetization_africa_edge",
+      "done": false,
       "payment_methods": ["Mpesa (Kenya)", "Flutterwave (Pan-Africa)", "Chipper Cash", "USD card via Stripe"],
       "local_data_moat": ["NSE (Nairobi Securities Exchange)", "JSE (Johannesburg)", "NGX (Nigeria)", "EGX (Egypt)", "African macro calendars"],
       "pricing_strategy": "KES-denominated plans at 30-50% discount vs USD plans to capture local market before global players localize"
@@ -352,6 +514,15 @@
 
   "phase_9_infrastructure": {
     "title": "Infrastructure & Latency Architecture",
+    "checklist": {
+      "total": 3,
+      "done": 0,
+      "items": [
+        { "id": "infra_ingestion_workers", "label": "Deploy ingestion workers on Railway.app / Fly.io near exchange colos", "done": false, "prerequisites": ["ingestion_binance", "ingestion_coinbase"], "notes": "Deploy near AWS Tokyo (Binance), AWS Oregon (Coinbase)" },
+        { "id": "infra_backpressure", "label": "Implement Redis backpressure buffer with Upstash", "done": false, "prerequisites": ["infra_ingestion_workers"], "notes": "Batch-write to Convex every 500ms" },
+        { "id": "infra_failover", "label": "Set up failover with leader election via Convex mutation", "done": false, "prerequisites": ["infra_ingestion_workers"], "notes": "2 ingestion workers per exchange in different regions" }
+      ]
+    },
     "ingestion_architecture": {
       "description": "Run exchange WebSocket adapters as persistent Node.js processes outside Convex (Convex Actions have time limits). These processes write normalized data to Convex via the Convex HTTP API or mutation calls.",
       "recommended_hosting": "Railway.app or Fly.io for ingestion workers. Deploy near exchange colos: AWS Tokyo (Binance), AWS Oregon (Coinbase).",
@@ -374,33 +545,54 @@
 
   "phase_10_competitive_moat": {
     "title": "Competitive Moat Strategy",
+    "checklist": {
+      "total": 5,
+      "done": 0,
+      "items": [
+        { "id": "moat_africa_first", "label": "Launch African & EM market data (NSE, JSE, NGX, EGX)", "done": false, "priority": 1, "effort": "medium", "impact": "very_high" },
+        { "id": "moat_signal_layer", "label": "Ship Signal Layer > Raw Data (funding arb, liquidation cascade, cross-exchange spread)", "done": false, "priority": 2, "effort": "medium", "impact": "high" },
+        { "id": "moat_dev_api", "label": "Launch Developer API with sandbox + SDKs", "done": false, "priority": 3, "effort": "medium", "impact": "high" },
+        { "id": "moat_workflow_lockin", "label": "Build Workflow Lock-in (saved layouts, custom alerts, historical replay)", "done": false, "priority": 4, "effort": "high", "impact": "high" },
+        { "id": "moat_trust_layer", "label": "Implement Trust Layer (data lineage, stream health, source transparency)", "done": false, "priority": 5, "effort": "low", "impact": "medium" }
+      ]
+    },
     "priority_wins": [
       {
         "moat": "African & EM Market First",
+        "checklist_id": "moat_africa_first",
+        "done": false,
         "action": "Be the only platform with real-time NSE, JSE, NGX data + African macro calendar + KES/NGN/ZAR pricing. No global competitor does this well.",
         "effort": "medium",
         "impact": "very_high"
       },
       {
         "moat": "Signal Layer > Raw Data",
+        "checklist_id": "moat_signal_layer",
+        "done": false,
         "action": "Every data point should have a derived signal. Traders don't want ticks — they want to know WHAT THE TICK MEANS. Build funding arb, liquidation cascade, cross-exchange spread signals from day 1.",
         "effort": "medium",
         "impact": "high"
       },
       {
         "moat": "Developer API",
+        "checklist_id": "moat_dev_api",
+        "done": false,
         "action": "Launch API product with sandbox, SDK (TypeScript + Python), and webhook support. Target African fintech builders. No competitor has an Africa-first data API.",
         "effort": "medium",
         "impact": "high"
       },
       {
         "moat": "Workflow Lock-in",
+        "checklist_id": "moat_workflow_lockin",
+        "done": false,
         "action": "Saved layouts, custom alert templates, historical replay, personalized signal filters. Once a trader builds their workflow in your platform, switching costs are high.",
         "effort": "high",
         "impact": "high"
       },
       {
         "moat": "Trust Layer",
+        "checklist_id": "moat_trust_layer",
+        "done": false,
         "action": "Show data lineage: which exchange, which channel, last message timestamp, sequence health indicator. Traders trust platforms that are transparent about data source quality.",
         "effort": "low",
         "impact": "medium"
@@ -409,59 +601,89 @@
   },
 
   "execution_order": {
+    "title": "12-Week Execution Timeline",
+    "description": "Ordered checklist by week. Each week must be 100% complete before moving to the next.",
+    "checklist": {
+      "total": 20,
+      "done": 0,
+      "weeks": {
+        "week_1_2": { "label": "Weeks 1-2: Schema + Core Ingestion", "done": false, "items_total": 4, "items_done": 0 },
+        "week_3_4": { "label": "Weeks 3-4: Entitlements + Alert Engine + API Basics", "done": false, "items_total": 4, "items_done": 0 },
+        "week_5_6": { "label": "Weeks 5-6: Signals + Frontend + Monetization", "done": false, "items_total": 4, "items_done": 0 },
+        "week_7_8": { "label": "Weeks 7-8: More Exchanges + Onchain + Events UI", "done": false, "items_total": 4, "items_done": 0 },
+        "week_9_10": { "label": "Weeks 9-10: API Launch + Africa Markets + Payments", "done": false, "items_total": 4, "items_done": 0 },
+        "week_11_12": { "label": "Weeks 11-12: AI Layer + Polish + Beta Launch", "done": false, "items_total": 4, "items_done": 0 }
+      }
+    },
     "week_1_2": [
-      "Deploy v3 schema to Convex dev environment",
-      "Build and test Binance + Coinbase ingestion adapters",
-      "Bootstrap instrument registry from exchange REST APIs",
-      "Implement stream health monitor cron"
+      { "id": "exec_deploy_schema", "label": "Deploy v3 schema to Convex dev environment", "done": false, "phase_ref": "schema_deploy", "priority": "P0" },
+      { "id": "exec_binance_coinbase", "label": "Build and test Binance + Coinbase ingestion adapters", "done": false, "phase_refs": ["ingestion_binance", "ingestion_coinbase"], "priority": "P0" },
+      { "id": "exec_bootstrap_registry", "label": "Bootstrap instrument registry from exchange REST APIs", "done": false, "phase_ref": "ingestion_bootstrap", "priority": "P0" },
+      { "id": "exec_health_monitor", "label": "Implement stream health monitor cron", "done": false, "phase_ref": "ingestion_health_monitor", "priority": "P1" }
     ],
     "week_3_4": [
-      "Build entitlement check functions",
-      "Implement alert engine (evaluator + dispatcher)",
-      "Wire up tickData and ohlcvData writes from ingestion pipeline",
-      "Basic ticker + OHLCV API endpoints"
+      { "id": "exec_entitlements", "label": "Build entitlement check functions", "done": false, "phase_ref": "entitlement_check", "priority": "P0" },
+      { "id": "exec_alert_engine", "label": "Implement alert engine (evaluator + dispatcher)", "done": false, "phase_refs": ["alert_evaluator", "alert_dispatcher", "alert_conditions", "alert_deduplicator"], "priority": "P0" },
+      { "id": "exec_wire_streams", "label": "Wire up tickData and ohlcvData writes from ingestion pipeline", "done": false, "prerequisites": ["exec_binance_coinbase"], "priority": "P0" },
+      { "id": "exec_basic_api", "label": "Basic ticker + OHLCV API endpoints", "done": false, "phase_refs": ["api_endpoint_2", "api_endpoint_3"], "priority": "P1" }
     ],
     "week_5_6": [
-      "Implement signal engine (funding arb, liquidation cascade, volume breakout)",
-      "Build frontend: MarketDataProvider, InstrumentTicker, CandlestickChart",
-      "Watchlist + Alert Manager UI",
-      "Stripe subscription integration"
+      { "id": "exec_signal_engine", "label": "Implement signal engine (funding arb, liquidation cascade, volume breakout)", "done": false, "phase_refs": ["signal_funding_arb", "signal_liquidation_cascade", "signal_volume_breakout"], "priority": "P0" },
+      { "id": "exec_frontend_basics", "label": "Build frontend: MarketDataProvider, InstrumentTicker, CandlestickChart", "done": false, "phase_refs": ["ui_market_data_provider", "ui_instrument_ticker", "ui_candlestick_chart"], "priority": "P0" },
+      { "id": "exec_watchlist_alert_ui", "label": "Watchlist + Alert Manager UI", "done": false, "phase_refs": ["ui_alert_manager", "ui_watchlist_panel"], "priority": "P1" },
+      { "id": "exec_stripe", "label": "Stripe subscription integration", "done": false, "phase_refs": ["monetization_trader_plan", "monetization_pro_plan"], "priority": "P1" }
     ],
     "week_7_8": [
-      "Add Kraken, Bybit adapters",
-      "Onchain metrics ingestion (Glassnode or CryptoQuant API)",
-      "News feed ingestion (CryptoPanic or Santiment API)",
-      "Event calendar with countdown + notification subscriptions"
+      { "id": "exec_kraken_bybit", "label": "Add Kraken, Bybit adapters", "done": false, "phase_refs": ["ingestion_kraken"], "priority": "P1" },
+      { "id": "exec_onchain", "label": "Onchain metrics ingestion (Glassnode or CryptoQuant API)", "done": false, "priority": "P2" },
+      { "id": "exec_news_feed", "label": "News feed ingestion (CryptoPanic or Santiment API)", "done": false, "priority": "P2" },
+      { "id": "exec_event_calendar_ui", "label": "Event calendar with countdown + notification subscriptions", "done": false, "phase_ref": "ui_event_calendar", "priority": "P1" }
     ],
     "week_9_10": [
-      "API product launch: REST + WebSocket, API key management, rate limiting",
-      "Developer docs (Mintlify or Docusaurus)",
-      "Africa/EM market data sources (NSE, JSE data feeds)",
-      "M-Pesa + Flutterwave payment integration"
+      { "id": "exec_api_product", "label": "API product launch: REST + WebSocket, API key management, rate limiting", "done": false, "phase_ref": "api_main_router", "priority": "P0" },
+      { "id": "exec_dev_docs", "label": "Developer docs (Mintlify or Docusaurus)", "done": false, "priority": "P1" },
+      { "id": "exec_africa_markets", "label": "Africa/EM market data sources (NSE, JSE data feeds)", "done": false, "phase_ref": "moat_africa_first", "priority": "P0" },
+      { "id": "exec_mpesa_flutterwave", "label": "M-Pesa + Flutterwave payment integration", "done": false, "priority": "P1" }
     ],
     "week_11_12": [
-      "AI signal layer (Claude API for news sentiment, anomaly narration)",
-      "Historical replay feature",
-      "Mobile-optimized PWA",
-      "Beta launch & feedback loop"
+      { "id": "exec_ai_signal_layer", "label": "AI signal layer (Claude API for news sentiment, anomaly narration)", "done": false, "phase_ref": "moat_signal_layer", "priority": "P1" },
+      { "id": "exec_historical_replay", "label": "Historical replay feature", "done": false, "priority": "P2" },
+      { "id": "exec_pwa", "label": "Mobile-optimized PWA", "done": false, "priority": "P2" },
+      { "id": "exec_beta_launch", "label": "Beta launch & feedback loop", "done": false, "priority": "P0" }
     ]
   },
 
   "convex_query_examples": {
     "title": "Key Convex Query/Mutation Patterns",
+    "description": "Reference implementations for the most critical Convex queries and mutations.",
+    "checklist": {
+      "total": 3,
+      "done": 0,
+      "items": [
+        { "id": "example_get_latest_tick", "label": "Implement getLatestTick query (convex/queries/market.ts)", "done": false, "prerequisites": ["schema_deploy"], "file": "convex/queries/market.ts" },
+        { "id": "example_get_ohlcv", "label": "Implement getOhlcv with entitlement check (convex/queries/ohlcv.ts)", "done": false, "prerequisites": ["entitlement_check"], "file": "convex/queries/ohlcv.ts" },
+        { "id": "example_ingest_tick", "label": "Implement ingestTick mutation (convex/mutations/ingestion.ts)", "done": false, "prerequisites": ["schema_deploy", "ingestion_types"], "file": "convex/mutations/ingestion.ts" }
+      ]
+    },
     "examples": [
       {
         "name": "Get latest ticker for instrument",
+        "checklist_id": "example_get_latest_tick",
+        "done": false,
         "file": "convex/queries/market.ts",
         "code": "export const getLatestTick = query({\n  args: { instrumentId: v.string() },\n  handler: async (ctx, { instrumentId }) => {\n    const ticks = await ctx.db\n      .query('tickData')\n      .withIndex('by_instrument_ts', q => q.eq('instrumentId', instrumentId))\n      .order('desc')\n      .take(1);\n    return ticks[0] ?? null;\n  },\n});"
       },
       {
         "name": "Get OHLCV with entitlement check",
+        "checklist_id": "example_get_ohlcv",
+        "done": false,
         "file": "convex/queries/ohlcv.ts",
         "code": "export const getOhlcv = query({\n  args: { instrumentId: v.string(), interval: v.string(), limit: v.number() },\n  handler: async (ctx, args) => {\n    const identity = await ctx.auth.getUserIdentity();\n    if (!identity) throw new Error('Unauthenticated');\n    const access = await checkAccess(ctx, identity.subject, 'ohlcv');\n    if (!access.allowed) throw new Error(access.reason);\n    return await ctx.db\n      .query('ohlcvData')\n      .withIndex('by_instrument_interval_ts', q =>\n        q.eq('instrumentId', args.instrumentId).eq('interval', args.interval)\n      )\n      .order('desc')\n      .take(args.limit);\n  },\n});"
       },
       {
         "name": "Ingest tick (called by ingestion worker)",
+        "checklist_id": "example_ingest_tick",
+        "done": false,
         "file": "convex/mutations/ingestion.ts",
         "code": "export const ingestTick = mutation({\n  args: {\n    instrumentId: v.string(), sourceId: v.string(),\n    price: v.number(), size: v.number(),\n    side: v.union(v.literal('buy'), v.literal('sell'), v.literal('unknown')),\n    tsUtc: v.number(),\n  },\n  handler: async (ctx, args) => {\n    const receivedAt = Date.now();\n    await ctx.db.insert('tickData', { ...args, receivedAt });\n    // Update stream health\n    const stream = await ctx.db.query('marketStreams')\n      .withIndex('by_instrument', q => q.eq('instrumentId', args.instrumentId))\n      .filter(q => q.eq(q.field('channel'), 'trades'))\n      .first();\n    if (stream) {\n      await ctx.db.patch(stream._id, { lastMessageAt: receivedAt, status: 'active' });\n    }\n    // Trigger alert evaluation (async, non-blocking)\n    await ctx.scheduler.runAfter(0, internal.alerts.evaluator.evaluate, {\n      instrumentId: args.instrumentId, price: args.price\n    });\n  },\n});"
       }

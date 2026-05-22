@@ -23,7 +23,7 @@ export const getUserSubscription = query({
     const plan = await ctx.db
       .query("subscriptionPlans")
       .withIndex("by_name")
-      .filter((q) => q.eq(q.field("planId"), sub.planId))
+      .filter((q) => q.eq(q.field("name"), sub.planId))
       .first();
     return { subscription: sub, plan };
   },

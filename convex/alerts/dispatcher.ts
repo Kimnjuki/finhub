@@ -1,8 +1,9 @@
 import { action } from "convex/server";
 import { v } from "convex/values";
+import { ActionCtx } from "../_generated/server";
 
 export const dispatchAlert = action({
-  async handler(ctx, { alertDeliveryId, channel, payload }: { alertDeliveryId: string; channel: string; payload: any }) {
+  async handler(ctx: ActionCtx, { alertDeliveryId, channel, payload }: { alertDeliveryId: string; channel: string; payload: any }) {
     // This would send the alert via the specified channel (email, SMS, push, etc.)
     // For now, we'll just mark it as sent
     await ctx.db.patch(alertDeliveryId, {
@@ -16,10 +17,10 @@ export const dispatchAlert = action({
 
 // Background action to process the alert delivery queue
 export const processAlertQueue = action({
-  async handler(ctx) {
+  async handler(ctx: ActionCtx) {
     // Get all pending alert deliveries
     const pending = await ctx.db.query("alertDeliveries")
-      .filter(q => q.eq("status", "pending"))
+      .filter((q: any) => q.eq("status", "pending"))
       .take(100) // limit to avoid overloading
       .collect();
 

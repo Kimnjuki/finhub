@@ -2,13 +2,13 @@ import { action } from "convex";
 import { v } from "convex/values";
 
 export const evaluatePriceAbove = action({
-  async handler(ctx, { alertId, conditionConfig }: { alertId: string; conditionConfig: any }) {
+  async handler(ctx: any, { alertId, conditionConfig }: { alertId: string; conditionConfig: any }) {
     const alert = await ctx.db.get(alertId);
     if (!alert) return { met: false };
 
     // Get latest price for the instrument
     const latestTick = await ctx.db.query("tickData")
-      .withIndex("by_instrument_ts", q => q.eq("instrumentId", alert.instrumentId))
+      .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", alert.instrumentId))
       .order("desc")
       .take(1)
       .first();
@@ -25,12 +25,12 @@ export const evaluatePriceAbove = action({
 });
 
 export const evaluatePriceBelow = action({
-  async handler(ctx, { alertId, conditionConfig }: { alertId: string; conditionConfig: any }) {
+  async handler(ctx: any, { alertId, conditionConfig }: { alertId: string; conditionConfig: any }) {
     const alert = await ctx.db.get(alertId);
     if (!alert) return { met: false };
 
     const latestTick = await ctx.db.query("tickData")
-      .withIndex("by_instrument_ts", q => q.eq("instrumentId", alert.instrumentId))
+      .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", alert.instrumentId))
       .order("desc")
       .take(1)
       .first();
@@ -46,7 +46,7 @@ export const evaluatePriceBelow = action({
 });
 
 export const evaluatePricePctChange = action({
-  async handler(ctx, { alertId, conditionConfig }: { alertId: string; conditionConfig: any }) {
+  async handler(ctx: any, { alertId, conditionConfig }: { alertId: string; conditionConfig: any }) {
     const alert = await ctx.db.get(alertId);
     if (!alert) return { met: false };
 
@@ -65,8 +65,8 @@ export const evaluatePricePctChange = action({
     if (window === "24h") startTs = oneDayAgo;
 
     const historicalTicks = await ctx.db.query("tickData")
-      .withIndex("by_instrument_ts", q => q.eq("instrumentId", alert.instrumentId))
-      .filter(q => q.gte("tsUtc", startTs))
+      .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", alert.instrumentId))
+      .filter((q: any) => q.gte("tsUtc", startTs))
       .order("asc")
       .take(1)
       .collect();
@@ -75,7 +75,7 @@ export const evaluatePricePctChange = action({
 
     const historicalPrice = historicalTicks[0].price;
     const latestTick = await ctx.db.query("tickData")
-      .withIndex("by_instrument_ts", q => q.eq("instrumentId", alert.instrumentId))
+      .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", alert.instrumentId))
       .order("desc")
       .take(1)
       .first();

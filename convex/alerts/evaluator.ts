@@ -6,17 +6,17 @@ import { evaluatePriceAbove, evaluatePriceBelow, evaluatePricePctChange } from "
 
 // Get all active alerts for a given instrument
 export const getActiveAlerts = action({
-  async handler(ctx, { instrumentId }: { instrumentId: string }) {
-    return ctx.db.query("alerts").withIndex("by_instrument", (q) => q.eq("instrumentId", instrumentId)).filter((q) => q.eq("isActive", true)).collect();
+  async handler(ctx: any, { instrumentId }: { instrumentId: string }) {
+    return ctx.db.query("alerts").withIndex("by_instrument", (q: any) => q.eq("instrumentId", instrumentId)).filter((q: any) => q.eq("isActive", true)).collect();
   },
 });
 
 // Evaluate all alerts for an instrument
 export const evaluateInstrumentAlerts = action({
-  async handler(ctx, { instrumentId, price, volume, fundingRate, openInterest, timestamp }: { instrumentId: string; price?: number; volume?: number; fundingRate?: number; openInterest?: number; timestamp?: number }) {
+  async handler(ctx: any, { instrumentId, price, volume, fundingRate, openInterest, timestamp }: { instrumentId: string; price?: number; volume?: number; fundingRate?: number; openInterest?: number; timestamp?: number }) {
     const alerts = await ctx.db.query("alerts")
-      .withIndex("by_instrument", (q) => q.eq("instrumentId", instrumentId))
-      .filter((q) => q.eq("isActive", true))
+      .withIndex("by_instrument", (q: any) => q.eq("instrumentId", instrumentId))
+      .filter((q: any) => q.eq("isActive", true))
       .collect();
 
     let triggeredCount = 0;
@@ -74,7 +74,7 @@ export const evaluateInstrumentAlerts = action({
 
 // Evaluate a single alert (can be called manually)
 export const evaluateAlert = action({
-  async handler(ctx, { alertId }: { alertId: string }) {
+  async handler(ctx: any, { alertId }: { alertId: string }) {
     const alert = await ctx.db.get(alertId);
     if (!alert || !alert.isActive) {
       return { triggered: false };
@@ -82,7 +82,7 @@ export const evaluateAlert = action({
 
     // Get latest market data for the instrument
     const latestTick = await ctx.db.query("tickData")
-      .withIndex("by_instrument_ts", q => q.eq("instrumentId", alert.instrumentId))
+      .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", alert.instrumentId))
       .order("desc")
       .take(1)
       .first();

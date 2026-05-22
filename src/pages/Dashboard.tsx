@@ -1,142 +1,96 @@
-import MobileNavigation from "@/components/MobileNavigation";
-import MobileDashboard from "@/components/MobileDashboard";
-import PortfolioCard from "@/components/PortfolioCard";
-import ForexPortfolio from "@/components/ForexPortfolio";
-import SmartCalculator from "@/components/SmartCalculator";
-import SEOHead from "@/components/SEOHead";
-import { MarketDataProvider } from "@/contexts/MarketDataContext";
-import LivePriceGrid from "@/components/market/LivePriceGrid";
-import NvidiaAIPanel from "@/components/NvidiaAIPanel";
+import React, { useEffect, useState } from 'react';
+import { useMarketData } from '../providers/MarketDataProvider';
+import { InstrumentTicker } from '../components/market/InstrumentTicker';
+import { OrderBookDepth } from '../components/market/OrderBookDepth';
+import { CandlestickChart } from '../components/charts/CandlestickChart';
+import { AlertManager } from '../components/alerts/AlertManager';
+import { SignalFeed } from '../components/signals/SignalFeed';
+import { EventCalendar } from '../components/events/EventCalendar';
+import { WatchlistPanel } from '../components/watchlists/WatchlistPanel';
+import { StreamHealthMonitor } from '../components/admin/StreamHealthMonitor';
+import { MarketTabs } from '../components/markets/MarketTabs';
 
-const Dashboard = () => {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "FINHUBAFRICA Trading Dashboard",
-    "applicationCategory": "FinanceApplication",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
+interface DashboardProps {
+  initialSymbols?: string[];
+}
+
+export default function Dashboard({ initialSymbols }: DashboardProps) {
+  const { instruments, streams } = useMarketData();
+  const [selectedSymbols, setSelectedSymbols] = useState<string[]>(initialSymbols || []);
+
+  useEffect(() => {
+    if (initialSymbols && initialSymbols.length > 0) {
+      setSelectedSymbols(initialSymbols);
+    }
+  }, [initialSymbols]);
+
+  const handleSymbolChange = (symbol: string) => {
+    if (!selectedSymbols.includes(symbol)) {
+      setSelectedSymbols(prev => [...prev, symbol]);
     }
   };
 
   return (
-    <MarketDataProvider>
-      <SEOHead
-        title="Professional Trading Dashboard | Real-time Crypto & Forex Charts | FINHUBAFRICA"
-        description="Unified trading dashboard with live cryptocurrency & forex data. Advanced TradingView charts, technical indicators, portfolio tracking, market analytics & trading signals. Monitor Bitcoin, Ethereum, USD/ZAR, EUR/USD & 100+ assets in real-time."
-        keywords="trading dashboard, crypto charts, forex charts, real-time market data, portfolio tracker, technical analysis, trading signals, market analytics, TradingView charts, cryptocurrency trading, forex trading platform, live prices"
-        structuredData={{
-          ...structuredData,
-          "featureList": [
-            "Real-time cryptocurrency prices",
-            "Live forex rates",
-            "Advanced charting tools",
-            "Portfolio tracking",
-            "Technical analysis",
-            "Trading signals",
-            "Risk calculator",
-            "Market sentiment analysis"
-          ]
-        }}
-      />
-      <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 pt-28 lg:pt-24">
-      <div className="max-w-7xl mx-auto">
-        <MobileNavigation />
-        
-        {/* Mobile-First Layout */}
-        <div className="lg:hidden px-4 pb-4">
-          <MobileDashboard />
+    <div className="dashboard">
+      <div className="page-header">
+        <h1>Trading Dashboard</h1>
+        <MarketTabs symbols={selectedSymbols} onSymbolChange={handleSymbolChange} />
+      </div>
+
+      <div className="grid-layout">
+        <div className="left-col">
+          <div className="card">
+            <h3>Market Overview</h3>
+            {selectedSymbols.map((symbol) => (
+              <InstrumentTicker key={symbol} symbol={symbol} size="small" />
+            ))}
+          </div>
+
+          <div className="card">
+            <h3>Order Book</h3>
+            {selectedSymbols.map((symbol) => (
+              <OrderBookDepth key={symbol} symbol={symbol} size="medium" />
+            ))}
+          </div>
         </div>
-        
-        {/* Desktop Layout */}
-        <div className="hidden lg:block p-8">
-          <header className="mb-8 text-center">
-            <h1 className="text-5xl font-bold mb-4 text-gradient">
-              Trading Platform
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Unified crypto and forex trading dashboard with real-time market data and advanced analytics
-            </p>
-            <div className="mt-6 flex justify-center gap-4">
-              <div className="px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
-                <span className="text-sm font-medium text-primary">⚡ Live Data</span>
-              </div>
-              <div className="px-4 py-2 bg-success/10 rounded-full border border-success/20">
-                <span className="text-sm font-medium text-success">🔒 Secure</span>
-              </div>
-              <div className="px-4 py-2 bg-accent/10 rounded-full border border-accent/20">
-                <span className="text-sm font-medium text-accent">📊 Advanced</span>
-              </div>
-            </div>
-          </header>
-          
-          {/* Live Market Data Grid */}
-          <div className="mb-8">
-            <LivePriceGrid />
+
+        <div className="center-col">
+          <div className="card chart-card">
+            <h3>Price Chart</h3>
+            {selectedSymbols.map((symbol) => (
+              <CandlestickChart
+                key={symbol}
+                symbol={symbol}
+                interval="1h"
+                width={800}
+                height={400}
+              />
+            ))}
           </div>
 
-          {/* Smart Calculator */}
-          <div className="mb-8">
-            <div className="transform hover:scale-[1.02] transition-all duration-300">
-              <SmartCalculator />
-            </div>
+          <div className="card alerts-card">
+            <AlertManager symbols={selectedSymbols} />
           </div>
 
-          {/* NVIDIA AI Market Analysis */}
-          <div className="mb-8">
-            <NvidiaAIPanel />
+          <div className="card signals-card">
+            <SignalFeed symbols={selectedSymbols} />
+          </div>
+        </div>
+
+        <div className="right-col">
+          <div className="card events-card">
+            <EventCalendar symbols={selectedSymbols} />
           </div>
 
-          {/* Portfolio Overview */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-            <div className="group transform hover:scale-[1.02] transition-all duration-300">
-              <PortfolioCard />
-            </div>
-            <div className="group transform hover:scale-[1.02] transition-all duration-300">
-              <ForexPortfolio />
-            </div>
+          <div className="card watchlist-card">
+            <WatchlistPanel symbols={selectedSymbols} />
           </div>
-          
-          {/* Quick Stats Footer with Tools Links */}
-          <footer className="mt-12 py-8 border-t border-border/30 bg-card/50 rounded-lg backdrop-blur-sm">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-              <a href="/tools#risk" className="space-y-2 group hover:bg-primary/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">🎯</div>
-                <h4 className="font-semibold text-primary group-hover:text-primary/80">Risk Calculator</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  Calculate position sizes and manage your trading risk
-                </p>
-              </a>
-              <a href="/tools#portfolio" className="space-y-2 group hover:bg-success/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">💼</div>
-                <h4 className="font-semibold text-success group-hover:text-success/80">Portfolio Tracker</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  Track and analyze your investment portfolio performance
-                </p>
-              </a>
-              <a href="/tools#simulator" className="space-y-2 group hover:bg-accent/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">⚡</div>
-                <h4 className="font-semibold text-accent group-hover:text-accent/80">Trading Simulator</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  Practice trading risk-free with virtual money
-                </p>
-              </a>
-              <a href="/analytics" className="space-y-2 group hover:bg-warning/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">📊</div>
-                <h4 className="font-semibold text-warning group-hover:text-warning/80">Market Analytics</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  Advanced market analysis and trading insights
-                </p>
-              </a>
-            </div>
-          </footer>
+
+          <div className="card health-card">
+            <StreamHealthMonitor symbols={selectedSymbols} />
+          </div>
         </div>
       </div>
-    </main>
-    </MarketDataProvider>
+    </div>
   );
-};
-
-export default Dashboard;
+}

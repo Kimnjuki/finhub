@@ -2,13 +2,14 @@
 
 import { action } from "convex/server";
 import { v } from "convex/values";
+import { ActionCtx } from "../_generated/server";
 
 // Check if a user has access to a specific feature, data source, or channel
 export const checkAccess = action({
-  async handler(ctx, { userId, featureName, accessLevel }: { userId: string; featureName: string; accessLevel: string }) {
+  async handler(ctx: ActionCtx, { userId, featureName, accessLevel }: { userId: string; featureName: string; accessLevel: string }) {
     // Check featureAccess table
     const access = await ctx.db.query("featureAccess")
-      .withIndex("by_user_and_feature", q => q.eq("userId", userId).eq("featureName", featureName))
+      .withIndex("by_user_and_feature", (q: any) => q.eq("userId", userId).eq("featureName", featureName))
       .first();
 
     if (!access) {
@@ -45,10 +46,10 @@ export const checkAccess = action({
 
 // Check data entitlements for a user to access a specific source/channel
 export const checkDataEntitlement = action({
-  async handler(ctx, { userId, sourceId, channel, marketType }: { userId: string; sourceId: string; channel: string; marketType?: string }) {
+  async handler(ctx: ActionCtx, { userId, sourceId, channel, marketType }: { userId: string; sourceId: string; channel: string; marketType?: string }) {
     const entitlement = await ctx.db.query("dataEntitlements")
-      .withIndex("by_user_and_source", q => q.eq("userId", userId).eq("sourceId", sourceId))
-      .filter(q => q.eq("channel", channel))
+      .withIndex("by_user_and_source", (q: any) => q.eq("userId", userId).eq("sourceId", sourceId))
+      .filter((q: any) => q.eq("channel", channel))
       .first();
 
     if (!entitlement) {

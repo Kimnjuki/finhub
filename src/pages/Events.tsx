@@ -75,8 +75,8 @@ const Events = () => {
       filtered = filtered.filter(event => 
         event.title.toLowerCase().includes(searchTerm) ||
         event.description?.toLowerCase().includes(searchTerm) ||
-        event.symbols?.some(symbol => symbol.toLowerCase().includes(searchTerm)) ||
-        event.coins?.some(coin => coin.toLowerCase().includes(searchTerm))
+        event.symbols?.some((symbol: string) => symbol.toLowerCase().includes(searchTerm)) ||
+        event.coins?.some((coin: string) => coin.toLowerCase().includes(searchTerm))
       );
     }
 

@@ -1,4 +1,5 @@
 import { query } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
 
 export const dashboardStats = query({
   args: {},
@@ -7,23 +8,24 @@ export const dashboardStats = query({
     const subscriptions = await ctx.db.query("userSubscriptions").collect();
     const plans = await ctx.db.query("subscriptionPlans").collect();
 
-    const planMap = new Map(plans.map((p) => [p.planId, p]));
+    const planMap = new Map<string, Doc<"subscriptionPlans">>();
+    plans.forEach((p) => planMap.set(p._id, p));
 
     const activeSubscriptions = subscriptions.filter(
       (s) => s.status === "active"
     );
     const monthlyRevenue = activeSubscriptions.reduce((sum, sub) => {
-      const plan = planMap.get(sub.planId);
+      const plan = planMap.get(sub.planId as Id<"subscriptionPlans">);
       return sum + (plan?.priceMonthly ?? 0);
     }, 0);
 
     const premiumUsers = activeSubscriptions.filter((s) => {
-      const plan = planMap.get(s.planId);
+      const plan = planMap.get(s.planId as Id<"subscriptionPlans">);
       return plan?.name === "Premium";
     }).length;
 
     const vipUsers = activeSubscriptions.filter((s) => {
-      const plan = planMap.get(s.planId);
+      const plan = planMap.get(s.planId as Id<"subscriptionPlans">);
       return plan?.name === "VIP";
     }).length;
 

@@ -44,7 +44,7 @@ export class BinanceAdapter implements ExchangeAdapter {
         console.error("[Binance] Error parsing message", err);
       }
     };
-  }
+  };
 
   disconnect() {
     if (this.ws) {
@@ -52,7 +52,7 @@ export class BinanceAdapter implements ExchangeAdapter {
       this.ws = undefined;
     }
     this.stopHeartbeat();
-  }
+  };
 
   subscribe(symbols: string[], channels: string[]) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -101,11 +101,11 @@ export class BinanceAdapter implements ExchangeAdapter {
     }
 
     this.ws.send(JSON.stringify(payload));
-  }
+  };
 
   onMessage(handler: (msg: NormalizedMessage) => void) {
     this.handlers.push(handler);
-  }
+  };
 
   private handleMessage(data: any) {
     const normalized: NormalizedMessage = {
@@ -135,18 +135,18 @@ export class BinanceAdapter implements ExchangeAdapter {
 
     this.messageQueue.push(normalized);
     this.flushMessageQueue();
-  }
+  };
 
   private flushMessageQueue() {
     while (this.messageQueue.length > 0 && this.ws && this.ws.readyState === WebSocket.OPEN) {
       const msg = this.messageQueue.shift()!;
       this.handlers.forEach((handler) => handler(msg));
     }
-  }
+  };
 
   private normalizeSymbol(symbol: string): string {
     return symbol.replace(/USDT$/, "-USDT").replace(/USDC$/, "-USDC").replace(/BUSD$/, "-BUSD").replace(/TRY$/, "-TRY");
-  }
+  };
 
   private normalizeChannel(channelInfo: string, type: string): string {
     if (type === "combined") {
@@ -162,7 +162,7 @@ export class BinanceAdapter implements ExchangeAdapter {
       }
     }
     return "unknown";
-  }
+  };
 
   private mapBinanceEventToChannel(event: string): string {
     const map: Record<string, string> = {
@@ -175,7 +175,7 @@ export class BinanceAdapter implements ExchangeAdapter {
       "openinterestupdate": "open_interest",
     };
     return map[event] || "unknown";
-  }
+  };
 
   private mapBinanceChannelToStandard(channel: string): string {
     const parts = channel.split("@")[0];
@@ -190,7 +190,7 @@ export class BinanceAdapter implements ExchangeAdapter {
     };
     const baseChannel = parts.replace(/[0-9@].*/, "");
     return map[baseChannel] || "unknown";
-  }
+  };
 
   private startHeartbeat() {
     this.heartbeatInterval = setInterval(() => {
@@ -198,14 +198,14 @@ export class BinanceAdapter implements ExchangeAdapter {
         this.ws.send(JSON.stringify({ method: "ping", params: [], id: Date.now() }));
       }
     }, 20000);
-  }
+  };
 
   private stopHeartbeat() {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = undefined;
     }
-  }
+  };
 
   private attemptReconnect() {
     if (this.reconnectAttempts >= 10) {
@@ -220,95 +220,5 @@ export class BinanceAdapter implements ExchangeAdapter {
     setTimeout(() => {
       this.connect();
     }, delay);
-  }
-
-  // Add handler for ingesting data into Convex
-  async ingestData(msg: NormalizedMessage) {
-    try {
-      // Call appropriate Convex mutation based on channel
-      switch (msg.channel) {
-        case "trades":
-          await ingestTick(client, {
-            instrumentId: msg.instrumentId,
-            sourceId: this.sourceId,
-            price: msg.payload.p || msg.payload.price || 0,
-            size: msg.payload.q || msg.payload.size || 0,
-            side: msg.payload.m || false ? 'sell' : 'buy', // m indicates maker order
-            tradeId: msg.payload.e === 'aggTrade' ? msg.payload.a : undefined,
-            isMakerOrder: msg.payload.m,
-            tsUtc: msg.tsUtc,
-            receivedAt: msg.receivedAt,
-          });
-          break;
-        case "ohlcv":
-          await ingestOhlcv(client, {
-            instrumentId: msg.instrumentId,
-            sourceId: this.sourceId,
-            interval: "1m", // kline_1m
-            open: msg.payload.o,
-            high: msg.payload.h,
-            low: msg.payload.l,
-            close: msg.payload.c,
-            volume: msg.payload.v,
-            quoteVolume: msg.payload.q,
-            tradeCount: msg.payload.n,
-            tsUtc: msg.tsUtc,
-            isClosed: true,
-          });
-          break;
-        case "orderbook_l2":
-          // Handle order book updates
-          await ingestOrderBook(client, {
-            instrumentId: msg.instrumentId,
-            sourceId: this.sourceId,
-            level: "l2",
-            bids: msg.payload.b || msg.payload.bids || [],
-            asks: msg.payload.a || msg.payload.asks || [],
-            sequence: msg.payload.u,
-            tsUtc: msg.tsUtc,
-            receivedAt: msg.receivedAt,
-          });
-          break;
-        case "ticker":
-          // Handle ticker updates (could be used for price)
-          break;
-        case "funding":
-          // Handle funding rate updates
-          break;
-        case "open_interest":
-          // Handle open interest updates
-          break;
-        case "liquidations":
-          // Handle liquidation updates
-          break;
-      }
-    } catch (err) {
-      console.error(`[Binance] Error ingesting data for ${msg.instrumentId} channel ${msg.channel}:`, err);
-    }
-  }
+  };
 }
-+++++++ REPLACE
-</diff>
-<task_progress>
-- [x] Set up project structure
-- [x] Install dependencies
-- [x] Create WebSocketProvider (removed)
-- [x] Complete MarketDataProvider (removed)
-- [x] Add missing Convex queries
-- [x] Implement InstrumentTicker
-- [x] Implement OrderBookDepth
-- [x] Implement CandlestickChart
-- [x] Implement AlertManager
-- [x] Implement SignalFeed
-- [ ] Implement EventCalendar
-- [ ] Implement WatchlistPanel
-- [ ] Implement StreamHealthMonitor
-- [x] Integrate ingestion adapters with Convex mutations
-- [ ] Implement stream health monitoring cron
-- [ ] Implement instrument registry bootstrap
-- [ ] Add Redis backpressure buffer
-- [ ] Implement failover with leader election
-- [ ] Test all components
-- [ ] Commit changes to GitHub
-</task_progress>
-</replace_in_file>

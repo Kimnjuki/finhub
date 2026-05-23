@@ -5,7 +5,8 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { AuthProvider } from '@/hooks/useAuth';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
-import { Sonner } from '@/components/ui/sonner';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
@@ -34,8 +35,8 @@ const App = () => (
     <ThemeProvider defaultTheme="dark" storageKey="finhubafrica-theme">
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
+            <Sonner />
+            <Toaster />
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />

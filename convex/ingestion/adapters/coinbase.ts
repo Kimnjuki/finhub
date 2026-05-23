@@ -1,5 +1,6 @@
 import { ExchangeAdapter, NormalizedMessage, NormalizedTrade } from "../types";
-import { ingestTick, ingestOhlcv, ingestOrderBook, ingestStreamMessage } from "../ingestion/bootstrap";
+import { ingestTick, ingestOhlcv, ingestOrderBook, ingestStreamMessage } from "../ingestion/bootstrap.ts";
+import client from "../../../src/integrations/convex/client";
 
 export class CoinbaseAdapter implements ExchangeAdapter {
   sourceId = "coinbase" as const;
@@ -208,27 +209,26 @@ export class CoinbaseAdapter implements ExchangeAdapter {
     try {
       switch (msg.channel) {
         case "trades":
-          await ingestTick(client, {
+await ingestTick(client, {
             instrumentId: msg.instrumentId,
             sourceId: this.sourceId,
-            price: msg.payload.price,
-            size: msg.payload.size,
-            side: msg.payload.side,
-            tradeId: msg.payload.trade_id,
+            price: msg.payload.price as number,
+            size: msg.payload.size as number,
+            side: msg.payload.side as 'buy' | 'sell' | 'unknown',
+            tradeId: msg.payload.trade_id as string,
             tsUtc: msg.tsUtc,
             receivedAt: msg.receivedAt,
           });
           break;
-        case "orderbook_l2":
+case "orderbook_l2":
+          const changes = msg.payload.changes as any[];
           await ingestOrderBook(client, {
             instrumentId: msg.instrumentId,
             sourceId: this.sourceId,
             level: "l2",
-            bids: msg.payload.changes
-              .filter((c: any) => c[0] >= 0)
-              .map((c: any) => ({ price: c[0], size: c[1] })),
-            asks: msg.payload.changes.filter((c: any) => c[0] < 0).map((c: any) => ({ price: Math.abs(c[0]), size: c[1] })),
-            sequence: msg.payload.sequence,
+            bids: changes.filter((c: any) => c[0] >= 0).map((c: any) => ({ price: c[0], size: c[1] })),
+            asks: changes.filter((c: any) => c[0] < 0).map((c: any) => ({ price: Math.abs(c[0]), size: c[1] })),
+            sequence: msg.payload.sequence as number,
             tsUtc: msg.tsUtc,
             receivedAt: msg.receivedAt,
           });
@@ -242,28 +242,3 @@ export class CoinbaseAdapter implements ExchangeAdapter {
     }
   }
 }
-+++++++ REPLACE
-</diff>
-<task_progress>
-- [x] Set up project structure
-- [x] Install dependencies
-- [x] Create WebSocketProvider (removed)
-- [x] Complete MarketDataProvider (removed)
-- [x] Add missing Convex queries
-- [x] Implement InstrumentTicker
-- [x] Implement OrderBookDepth
-- [x] Implement CandlestickChart
-- [x] Implement AlertManager
-- [x] Implement SignalFeed
-- [ ] Implement EventCalendar
-- [ ] Implement WatchlistPanel
-- [ ] Implement StreamHealthMonitor
-- [x] Integrate ingestion adapters with Convex mutations
-- [ ] Implement stream health monitoring cron
-- [ ] Implement instrument registry bootstrap
-- [ ] Add Redis backpressure buffer
-- [ ] Implement failover with leader election
-- [ ] Test all components
-- [ ] Commit changes to GitHub
-</task_progress>
-</replace_in_file>

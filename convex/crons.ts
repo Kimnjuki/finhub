@@ -12,9 +12,9 @@ export const monitorStreamHealth = defineAction({
       const wsConnected = ctx.runtime.store.get(`ws_connected_${source}`) || false;
       
       // Update stream status
-      const streams = await ctx.db.query("marketStreams")
-        .withIndex("by_source", q => q.eq("sourceId", source))
-        .collect();
+const streams = await ctx.db.query("marketStreams")
+  .withIndex("by_source", (q: any) => q.eq("sourceId", source))
+  .collect();
       
       for (const stream of streams) {
         const status = wsConnected ? "active" : "stale";

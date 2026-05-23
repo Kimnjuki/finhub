@@ -83,7 +83,7 @@ export const streamMarketData = convex.defineAction({
 export const getLatestTick = convex.defineQuery({
   async handler(ctx: any, { instrumentId }: { instrumentId: string }) {
     const tick = await ctx.db.query("tickData")
-      .withIndex("by_instrument_ts", q => q.eq("instrumentId", instrumentId))
+      .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", instrumentId))
       .order("desc")
       .take(1)
       .first();
@@ -133,15 +133,15 @@ export const getEvents = convex.defineQuery({
   async handler(ctx: any, { symbols, limit }: { symbols?: string[]; limit?: number }) {
     const now = Date.now();
     let query = ctx.db.query("events")
-      .withIndex("by_start_ts", q => q.gt("startTsUtc", now))
-      .order("asc", q => q.field("startTsUtc"));
+      .withIndex("by_start_ts", (q: any) => q.gt("startTsUtc", now))
+      .order("asc", (q: any) => q.field("startTsUtc"));
     
     if (symbols) {
       // Filter events that match any of the symbols
       const eventIds = new Set<string>();
       // This would need to check events.symbols or events.coins
       // Simplified for now
-      query = query.filter(q => q.in("symbols", symbols));
+      query = query.filter((q: any) => q.in("symbols", symbols));
     }
     
     return await query.take(limit ?? 20).collect();

@@ -1,9 +1,8 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+  "include": [
+    "convex/ingestion/*"
   ],
+  "composite": true,
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
@@ -15,6 +14,9 @@
     "allowJs": true,
     "noUnusedLocals": false,
     "strictNullChecks": false,
-    "types": ["node"]
+    "types": ["node"],
+    "moduleResolution": "node16",
+    "module": "node16",
+    "ignoreDeprecations": "6.0"
   }
 }

@@ -1,3 +1,4 @@
+/// <reference path="../../src/types.d.ts" />
 import { defineAction } from "convex/server";
 import { v } from "convex/values";
 

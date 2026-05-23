@@ -3,14 +3,14 @@ import { v } from "convex/values";
 
 // Get all market instruments from exchanges
 export const getInstrumentRegistry = query({
-  async handler(ctx) {
+  async handler(ctx: any) {
     return ctx.db.query("marketInstruments").collect();
   },
 });
 
 // Upsert market instruments from exchange info
 export const upsertMarketInstruments = mutation({
-  async handler(ctx, args) {
+  async handler(ctx: any, args: any) {
     const { instruments } = args;
     const existing = await ctx.db.query("marketInstruments").collect();
 
@@ -33,7 +33,7 @@ export const upsertMarketInstruments = mutation({
 
 // Fetch exchange info from Binance REST API and upsert instruments
 export const fetchBinanceInstruments = mutation({
-  async handler(ctx) {
+  async handler(ctx: any) {
     // TODO: Call Binance REST API to get exchange info
     // For now, return empty array
     return { success: true };
@@ -42,7 +42,7 @@ export const fetchBinanceInstruments = mutation({
 
 // Fetch exchange info from Coinbase REST API
 export const fetchCoinbaseInstruments = mutation({
-  async handler(ctx) {
+  async handler(ctx: any) {
     // TODO: Call Coinbase REST API to get products
     return { success: true };
   },
@@ -50,7 +50,7 @@ export const fetchCoinbaseInstruments = mutation({
 
 // Fetch exchange info from Kraken REST API
 export const fetchKrakenInstruments = mutation({
-  async handler(ctx) {
+  async handler(ctx: any) {
     // TODO: Call Kraken REST API to get asset pairs
     return { success: true };
   },

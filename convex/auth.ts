@@ -10,10 +10,10 @@ async function hashPassword(password: string): Promise<string> {
 
 export const signUp = mutation({
   args: { email: v.string(), password: v.string() },
-  handler: async (ctx, { email, password }) => {
+  handler: async (ctx: any, { email, password }: { email: string; password: string }) => {
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: any) => q.eq("email", email))
       .first();
     if (existing) throw new Error("already registered");
 
@@ -33,10 +33,10 @@ export const signUp = mutation({
 
 export const signIn = mutation({
   args: { email: v.string(), password: v.string() },
-  handler: async (ctx, { email, password }) => {
+  handler: async (ctx: any, { email, password }: { email: string; password: string }) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: any) => q.eq("email", email))
       .first();
     if (!user) throw new Error("Invalid login credentials");
 
@@ -50,14 +50,14 @@ export const signIn = mutation({
 
 export const getUser = query({
   args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+  handler: async (ctx: any, { userId }: { userId: string }) => {
     return ctx.db.get(userId);
   },
 });
 
 export const updatePassword = mutation({
   args: { userId: v.id("users"), newPassword: v.string() },
-  handler: async (ctx, { userId, newPassword }) => {
+  handler: async (ctx: any, { userId, newPassword }: { userId: string; newPassword: string }) => {
     const passwordHash = await hashPassword(newPassword);
     await ctx.db.patch(userId, { passwordHash, updatedAt: Date.now() });
   },

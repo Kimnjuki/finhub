@@ -1,10 +1,11 @@
 import { defineAction, action } from "convex/server";
 import { query, defineQuery } from "convex/server";
 import { v } from "convex/values";
+import { ActionCtx, QueryCtx } from "../_generated/server";
 
 // Create a new alert
 export const createAlert = action({
-  async handler(ctx, { 
+  async handler(ctx: ActionCtx, { 
     userId, 
     instrumentId, 
     type, 
@@ -47,7 +48,7 @@ export const createAlert = action({
 
 // Get alerts for a user
 export const getAlerts = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     userId, 
     instrumentId, 
     limit = 50 
@@ -74,7 +75,7 @@ export const getAlerts = query({
 
 // Delete an alert
 export const deleteAlert = action({
-  async handler(ctx, { alertId }: { alertId: string }) {
+  async handler(ctx: ActionCtx, { alertId }: { alertId: string }) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     

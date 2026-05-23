@@ -3,10 +3,10 @@ import { v } from "convex/values";
 
 export const listByUser = query({
   args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+  handler: async (ctx: any, { userId }: { userId: string }) => {
     return ctx.db
       .query("follows")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .collect();
   },
 });
@@ -17,7 +17,7 @@ export const create = mutation({
     filterType: v.string(),
     filterValue: v.string(),
   },
-  handler: async (ctx, { userId, filterType, filterValue }) => {
+  handler: async (ctx: any, { userId, filterType, filterValue }: { userId: string; filterType: string; filterValue: string }) => {
     const followData: any = {
       userId,
       createdAt: Date.now(),
@@ -29,7 +29,7 @@ export const create = mutation({
 
 export const remove = mutation({
   args: { followId: v.id("follows") },
-  handler: async (ctx, { followId }) => {
+  handler: async (ctx: any, { followId }: { followId: string }) => {
     await ctx.db.delete(followId);
   },
 });

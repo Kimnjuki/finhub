@@ -1,10 +1,11 @@
 import { defineAction, action } from "convex/server";
 import { query, defineQuery } from "convex/server";
 import { v } from "convex/values";
+import { QueryCtx } from "../_generated/server";
 
 // Get recent events
 export const getEvents = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     category, 
     limit = 20, 
     afterTs 
@@ -35,7 +36,7 @@ export const getEvents = query({
 
 // Get recent news
 export const getNews = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     coins, 
     limit = 20, 
     afterPublished 
@@ -65,7 +66,7 @@ export const getNews = query({
 });
 
 // Helper function for access control (will be implemented properly later)
-async function checkAccess(ctx: any, userId: string, feature: string) {
-  // This is a simplified version - in production, this would check user entitlements
-  return { allowed: true, reason: "Access denied" };
+async function checkAccess(ctx: QueryCtx, userId: string, feature: string) {
+    // This is a simplified version - in production, this would check user entitlements
+    return { allowed: true, reason: "Access denied" };
 }

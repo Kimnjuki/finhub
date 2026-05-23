@@ -1,10 +1,11 @@
 import { defineAction, action } from "convex/server";
 import { query, defineQuery } from "convex/server";
 import { v } from "convex/values";
+import { QueryCtx } from "../_generated/server";
 
 // Get latest ticker for an instrument
 export const getTicker = query({
-  async handler(ctx, { symbol }: { symbol: string }) {
+  async handler(ctx: QueryCtx, { symbol }: { symbol: string }) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     
@@ -28,7 +29,7 @@ export const getTicker = query({
 
 // Get OHLCV data for an instrument
 export const getOhlcv = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     symbol, 
     interval = "1h", 
     limit = 200 
@@ -58,7 +59,7 @@ export const getOhlcv = query({
 
 // Get order book snapshot
 export const getOrderBook = query({
-  async handler(ctx, { symbol, level = "l2" }: { symbol: string; level?: string }) {
+  async handler(ctx: QueryCtx, { symbol, level = "l2" }: { symbol: string; level?: string }) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     
@@ -79,7 +80,7 @@ export const getOrderBook = query({
 
 // Get recent trades
 export const getTrades = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     symbol, 
     limit = 50 
   }: { 
@@ -105,7 +106,7 @@ export const getTrades = query({
 
 // Get funding rates
 export const getFundingRates = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     symbol, 
     limit = 10 
   }: { 
@@ -131,7 +132,7 @@ export const getFundingRates = query({
 
 // Get open interest
 export const getOpenInterest = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     symbol, 
     limit = 10 
   }: { 
@@ -157,7 +158,7 @@ export const getOpenInterest = query({
 
 // Get signals for an instrument
 export const getSignals = query({
-  async handler(ctx, { 
+  async handler(ctx: QueryCtx, { 
     symbol, 
     limit = 20 
   }: { 
@@ -182,7 +183,7 @@ export const getSignals = query({
 });
 
 // Helper function for access control (will be implemented properly later)
-async function checkAccess(ctx: any, userId: string, feature: string) {
+async function checkAccess(ctx: QueryCtx, userId: string, feature: string) {
   // This is a simplified version - in production, this would check user entitlements
   return { allowed: true, reason: "Access denied" };
 }

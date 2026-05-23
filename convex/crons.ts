@@ -2,9 +2,9 @@ import { defineAction, action } from "convex/server";
 
 // Stream health check action - can be scheduled separately
 export const checkStreamHealth = defineAction({
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     // Get all active market streams
-    const streams = await ctx.db.query("marketStreams").withIndex("by_status", (q) => q.eq("status", "active")).collect();
+const streams = await ctx.db.query("marketStreams").withIndex("by_status", (q: any) => q.eq("status", "active")).collect();
 
     const now = Date.now();
 

@@ -3,20 +3,20 @@ import { v } from "convex/values";
 
 export const listByUser = query({
   args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+  handler: async (ctx: any, { userId }: { userId: string }) => {
     return ctx.db
       .query("eventSubscriptions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .collect();
   },
 });
 
 export const checkSubscribed = query({
   args: { userId: v.string(), eventId: v.string() },
-  handler: async (ctx, { userId, eventId }) => {
+  handler: async (ctx: any, { userId, eventId }: { userId: string; eventId: string }) => {
     const sub = await ctx.db
       .query("eventSubscriptions")
-      .withIndex("by_user_and_event", (q) =>
+      .withIndex("by_user_and_event", (q: any) =>
         q.eq("userId", userId).eq("eventId", eventId)
       )
       .first();
@@ -31,10 +31,10 @@ export const subscribe = mutation({
     channels: v.array(v.string()),
     leadTimes: v.array(v.number()),
   },
-  handler: async (ctx, { userId, eventId, channels, leadTimes }) => {
+  handler: async (ctx: any, { userId, eventId, channels, leadTimes }: { userId: string; eventId: string; channels: string[]; leadTimes: number[] }) => {
     const existing = await ctx.db
       .query("eventSubscriptions")
-      .withIndex("by_user_and_event", (q) =>
+      .withIndex("by_user_and_event", (q: any) =>
         q.eq("userId", userId).eq("eventId", eventId)
       )
       .first();
@@ -51,7 +51,7 @@ export const subscribe = mutation({
 
 export const unsubscribe = mutation({
   args: { subscriptionId: v.id("eventSubscriptions") },
-  handler: async (ctx, { subscriptionId }) => {
+  handler: async (ctx: any, { subscriptionId }: { subscriptionId: string }) => {
     await ctx.db.delete(subscriptionId);
   },
 });

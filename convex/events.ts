@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 export const list = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     return ctx.db
       .query("events")
       .withIndex("by_start_ts")
@@ -14,10 +14,10 @@ export const list = query({
 
 export const listByDateRange = query({
   args: { startTs: v.number(), endTs: v.number() },
-  handler: async (ctx, { startTs, endTs }) => {
+  handler: async (ctx: any, { startTs, endTs }: { startTs: number; endTs: number }) => {
     return ctx.db
       .query("events")
-      .withIndex("by_start_ts", (q) =>
+      .withIndex("by_start_ts", (q: any) =>
         q.gte("startTsUtc", startTs).lte("startTsUtc", endTs)
       )
       .collect();
@@ -26,46 +26,46 @@ export const listByDateRange = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
-  handler: async (ctx, { slug }) => {
+  handler: async (ctx: any, { slug }: { slug: string }) => {
     return ctx.db
       .query("events")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .first();
   },
 });
 
 export const getRelated = query({
   args: { category: v.string(), excludeSlug: v.string() },
-  handler: async (ctx, { category, excludeSlug }) => {
+  handler: async (ctx: any, { category, excludeSlug }: { category: string; excludeSlug: string }) => {
     const events = await ctx.db
       .query("events")
-      .withIndex("by_category", (q) =>
+      .withIndex("by_category", (q: any) =>
         q.eq(
           "category",
           category as "macro" | "crypto" | "earnings" | "other"
         )
       )
       .collect();
-    return events.filter((e) => e.slug !== excludeSlug).slice(0, 3);
+    return events.filter((e: any) => e.slug !== excludeSlug).slice(0, 3);
   },
 });
 
 export const getEventMeta = query({
   args: { eventId: v.string() },
-  handler: async (ctx, { eventId }) => {
+  handler: async (ctx: any, { eventId }: { eventId: string }) => {
     return ctx.db
       .query("eventMeta")
-      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .withIndex("by_event", (q: any) => q.eq("eventId", eventId))
       .collect();
   },
 });
 
 export const checkSlugExists = query({
   args: { slug: v.string() },
-  handler: async (ctx, { slug }) => {
+  handler: async (ctx: any, { slug }: { slug: string }) => {
     const existing = await ctx.db
       .query("events")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .first();
     return !!existing;
   },
@@ -98,7 +98,7 @@ export const create = mutation({
     ),
     sourceUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const now = Date.now();
     return ctx.db.insert("events", {
       ...args,

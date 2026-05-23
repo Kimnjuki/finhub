@@ -2,13 +2,13 @@ import { internalMutation } from "../_generated/server";
 
 export const run = internalMutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     // 1. Roles
     const roleNames = ["admin", "analyst", "vip_user", "user"];
     for (const roleName of roleNames) {
       const existing = await ctx.db
         .query("roles")
-        .withIndex("by_role_name", (q) => q.eq("roleName", roleName))
+        .withIndex("by_role_name", (q: any) => q.eq("roleName", roleName))
         .first();
       if (!existing) {
         await ctx.db.insert("roles", { roleName });
@@ -91,7 +91,7 @@ export const run = internalMutation({
     for (const plan of plans) {
       const existing = await ctx.db
         .query("subscriptionPlans")
-        .withIndex("by_name", (q) => q.eq("name", plan.name))
+        .withIndex("by_name", (q: any) => q.eq("name", plan.name))
         .first();
       if (!existing) {
         await ctx.db.insert("subscriptionPlans", plan);

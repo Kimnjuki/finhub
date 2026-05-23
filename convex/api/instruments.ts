@@ -4,7 +4,7 @@ import { v } from "convex/values";
 
 // Get all instruments with optional filters
 export const getInstruments = query({
-  async handler(ctx, { 
+  async handler(ctx: any, { 
     assetClass, 
     exchange, 
     limit = 100, 
@@ -51,7 +51,7 @@ export const getInstruments = query({
 
 // Get instrument details by symbol
 export const getInstrument = query({
-  async handler(ctx, { symbol }: { symbol: string }) {
+  async handler(ctx: any, { symbol }: { symbol: string }) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     

@@ -1,10 +1,11 @@
+/// <reference path="../../src/types.d.ts" />
 import { defineAction, action } from "convex/server";
 import { query, defineQuery } from "convex/server";
 import { v } from "convex/values";
 
 // Create a new watchlist
 export const createWatchlist = action({
-  async handler(ctx, { 
+  async handler(ctx: any, { 
     userId, 
     name, 
     description,
@@ -40,7 +41,7 @@ export const createWatchlist = action({
 
 // Get user's watchlists
 export const getWatchlists = query({
-  async handler(ctx, { userId }: { userId: string }) {
+  async handler(ctx: any, { userId }: { userId: string }) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     
@@ -56,7 +57,7 @@ export const getWatchlists = query({
 
 // Add instrument to watchlist
 export const addToWatchlist = action({
-  async handler(ctx, { 
+  async handler(ctx: any, { 
     watchlistId, 
     instrumentId 
   }: { 
@@ -89,7 +90,7 @@ export const addToWatchlist = action({
 
 // Remove instrument from watchlist
 export const removeFromWatchlist = action({
-  async handler(ctx, { watchlistId, instrumentId }: { watchlistId: string; instrumentId: string }) {
+  async handler(ctx: any, { watchlistId, instrumentId }: { watchlistId: string; instrumentId: string }) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     

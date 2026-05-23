@@ -64,7 +64,7 @@ export const checkEndpointEntitlements = action({
 
 // Main API router - routes all API requests
 export const apiRouter = action({
-  async handler(ctx, { req, res }: { req: any; res: any }) {
+  async handler(ctx: any, { req, res }: { req: any; res: any }) {
     // Validate API key first
     const keyValidation = await ctx.run(validateApiKey, { req });
     if (!keyValidation.valid) {

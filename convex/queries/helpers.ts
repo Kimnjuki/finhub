@@ -78,3 +78,99 @@ export const streamMarketData = convex.defineAction({
     return { success: true };
   },
 });
+
+// Additional queries needed for frontend
+export const getLatestTick = convex.defineQuery({
+  async handler(ctx: any, { instrumentId }: { instrumentId: string }) {
+    const tick = await ctx.db.query("tickData")
+      .withIndex("by_instrument_ts", q => q.eq("instrumentId", instrumentId))
+      .order("desc")
+      .take(1)
+      .first();
+    return tick ?? null;
+  },
+});
+
+export const getOhlcv = convex.defineQuery({
+  async handler(ctx: any, { instrumentId, interval, limit }: { instrumentId: string; interval: string; limit: number }) {
+    return await ctx.db.query("ohlcvData")
+      .withIndex("by_instrument_interval_ts", q => 
+        q.eq("instrumentId", instrumentId).eq("interval", interval)
+      )
+      .order("desc")
+      .take(limit)
+      .collect();
+  },
+});
+
+export const getAlerts = convex.defineQuery({
+  async handler(ctx: any, { userId, instrumentId, active }: { userId: string; instrumentId?: string; active?: boolean }) {
+    let query = ctx.db.query("alerts").withIndex("by_user", q => q.eq("userId", userId));
+    if (instrumentId) {
+      query = query.withIndex("by_instrument", q => q.eq("instrumentId", instrumentId));
+    }
+    if (active !== undefined) {
+      query = query.filter(q => q.eq(q.field("isActive"), active));
+    }
+    return await query.collect();
+  },
+});
+
+export const getSignals = convex.defineQuery({
+  async handler(ctx: any, { instrumentId, limit }: { instrumentId?: string; limit?: number }) {
+    let query = ctx.db.query("signals");
+    if (instrumentId) {
+      query = query.withIndex("by_instrument", q => q.eq("instrumentId", instrumentId));
+    }
+    return await query
+      .order("desc", q => q.field("tsUtc"))
+      .take(limit ?? 50)
+      .collect();
+  },
+});
+
+export const getEvents = convex.defineQuery({
+  async handler(ctx: any, { symbols, limit }: { symbols?: string[]; limit?: number }) {
+    const now = Date.now();
+    let query = ctx.db.query("events")
+      .withIndex("by_start_ts", q => q.gt("startTsUtc", now))
+      .order("asc", q => q.field("startTsUtc"));
+    
+    if (symbols) {
+      // Filter events that match any of the symbols
+      const eventIds = new Set<string>();
+      // This would need to check events.symbols or events.coins
+      // Simplified for now
+      query = query.filter(q => q.in("symbols", symbols));
+    }
+    
+    return await query.take(limit ?? 20).collect();
+  },
+});
+
+export const getWatchlists = convex.defineQuery({
+  async handler(ctx: any, { userId }: { userId: string }) {
+    const watchlists = await ctx.db.query("watchlists")
+      .withIndex("by_user", q => q.eq("userId", userId))
+      .order("desc", q => q.field("sortOrder"))
+      .collect();
+    
+    // Fetch items for each watchlist
+    for (const wl of watchlists) {
+      const items = await ctx.db.query("watchlistItems")
+        .withIndex("by_watchlist", q => q.eq("watchlistId", wl._id))
+        .collect();
+      wl.items = items;
+    }
+    
+    return watchlists;
+  },
+});
+
+export const getStreamHealth = convex.defineQuery({
+  async handler(ctx: any) {
+    return await ctx.db.query("marketStreams")
+      .withIndex("by_status", q => q.eq("status", "active"))
+      .collect();
+  },
+});

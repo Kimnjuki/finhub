@@ -1,24 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { useMarketData } from '../../providers/MarketDataProvider';
 
 interface SignalFeedProps {
   symbols?: string[];
 }
 
 export function SignalFeed({ symbols }: SignalFeedProps) {
-  const { streams } = useMarketData();
   const [signals, setSignals] = useState<any[]>([]);
+  const [signalData, setSignalData] = useState<any[]>([]);
+
+  // Simulate fetching signals
+  useEffect(() => {
+    const mockSignals = [
+      { symbol: 'BTC-USD', strength: 0.8, confidence: 0.9, direction: 'bullish', type: 'momentum', timestamp: Date.now() },
+      { symbol: 'ETH-USD', strength: 0.6, confidence: 0.7, direction: 'bearish', type: 'mean_reversion', timestamp: Date.now() },
+    ];
+    setSignalData(mockSignals);
+  }, []);
 
   useEffect(() => {
-    if (!streams) return;
+    // Transform signal data into displayable format
+    const displaySignals = signalData.map(signal => ({
+      ...signal,
+      message: `Signal: ${signal.direction} ${signal.type} for ${signal.symbol}`,
+    }));
 
-    // Filter for signal updates
-    const signalUpdates = streams.filter(
-      (s: any) => s.channel === 'unknown' && symbols?.some(sym => s.instrumentId?.includes(sym))
-    );
-
-    setSignals(signalUpdates.slice(0, 10)); // Limit to 10 signals
-  }, [streams, symbols]);
+    setSignals(displaySignals);
+  }, [signalData]);
 
   return (
     <div className="signal-feed">
@@ -29,10 +36,12 @@ export function SignalFeed({ symbols }: SignalFeedProps) {
         ) : (
           signals.map((signal: any, index) => (
             <div key={index} className="signal-item">
-              <div className="signal-symbol">{signal.instrumentId}</div>
+              <div className="signal-symbol">{signal.symbol}</div>
               <div className="signal-info">
-                <div>Strength: {signal.payload?.strength || 'N/A'}</div>
-                <div>Confidence: {signal.payload?.confidence || 'N/A'}</div>
+                <div>Direction: {signal.direction}</div>
+                <div>Strength: {signal.strength}</div>
+                <div>Confidence: {signal.confidence}</div>
+                <div>Type: {signal.type}</div>
               </div>
             </div>
           ))

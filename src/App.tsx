@@ -1,32 +1,31 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
-import Tools from "./pages/Tools";
-import Products from "./pages/Products";
-import News from "./pages/News";
-import FAQ from "./pages/FAQ";
-import Auth from "./pages/Auth";
-import Pricing from "./pages/Pricing";
-import Events from "./pages/Events";
-import EventDetailPage from "./components/EventDetailPage";
-import RoleManagement from "./pages/RoleManagement";
-import AdminDashboard from "./pages/AdminDashboard";
-import About from "./pages/About";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Forex from "./pages/Forex";
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { AuthProvider } from '@/hooks/useAuth';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/toaster';
+import { Sonner } from '@/components/ui/sonner';
+import Index from './pages/Index';
+import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
+import Tools from './pages/Tools';
+import Products from './pages/Products';
+import News from './pages/News';
+import FAQ from './pages/FAQ';
+import Auth from './pages/Auth';
+import Pricing from './pages/Pricing';
+import Events from './pages/Events';
+import EventDetailPage from './components/EventDetailPage';
+import RoleManagement from './pages/RoleManagement';
+import AdminDashboard from './pages/AdminDashboard';
+import About from './pages/About';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Forex from './pages/Forex';
 
-import AIPredictions from "./pages/AIPredictions";
-import Trading from "./pages/Trading";
-import Markets from "./pages/Markets";
-import { MarketDataProvider } from "@/contexts/MarketDataContext";
+import AIPredictions from './pages/AIPredictions';
+import Trading from './pages/Trading';
+import Markets from './pages/Markets';
 
 const queryClient = new QueryClient();
 
@@ -37,8 +36,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <MarketDataProvider>
-            <BrowserRouter>
+          <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
               
@@ -54,8 +52,8 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/markets" element={<Markets />} />
               <Route path="/forex" element={<Forex />} />
-
               
+
               {/* Protected Routes - Authentication Required */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
@@ -94,7 +92,6 @@ const App = () => (
               } />
             </Routes>
           </BrowserRouter>
-          </MarketDataProvider>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>

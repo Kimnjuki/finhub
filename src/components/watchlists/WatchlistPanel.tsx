@@ -1,42 +1,69 @@
 import React, { useEffect, useState } from 'react';
-import { useMarketData } from '../../providers/MarketDataProvider';
 
 interface WatchlistPanelProps {
   symbols?: string[];
 }
 
 export function WatchlistPanel({ symbols }: WatchlistPanelProps) {
-  const { streams } = useMarketData();
   const [watchlists, setWatchlists] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Simulate fetching watchlists data
   useEffect(() => {
-    if (!streams) return;
+    let mounted = true;
+    setTimeout(() => {
+      if (mounted) {
+        const mockWatchlists = [
+          {
+            name: 'Crypto Portfolio',
+            items: [
+              { symbol: 'BTC-USD', price: 42000, change24h: 1.5 },
+              { symbol: 'ETH-USD', price: 2400, change24h: -0.5 },
+              { symbol: 'SOL-USD', price: 100, change24h: 2.3 },
+            ],
+          },
+          {
+            name: 'Tech Stocks',
+            items: [
+              { symbol: 'AAPL', price: 175, change24h: 0.8 },
+              { symbol: 'GOOGL', price: 140, change24h: -1.2 },
+              { symbol: 'MSFT', price: 330, change24h: 0.5 },
+            ],
+          },
+        ];
+        setWatchlists(mockWatchlists);
+        setIsLoading(false);
+      }
+    }, 1000);
+    
+    return () => { mounted = false; };
+  }, []);
 
-    // Filter for watchlist updates
-    const watchlistStream = streams.find(
-      (s: any) => s.channel === 'watchlist_updates' && symbols?.some(sym => s.instrumentId?.includes(sym))
-    );
-
-    if (watchlistStream) {
-      setWatchlists([watchlistStream.payload]);
-    }
-  }, [streams, symbols]);
+  if (isLoading) {
+    return <div>Loading watchlists...</div>;
+  }
 
   return (
     <div className="watchlist-panel">
       <h3>Watchlists</h3>
-      <div className="watchlist-items">
-        {watchlists.length === 0 ? (
-          <p>No watchlists</p>
-        ) : (
-          watchlists.map((list: any, index) => (
+      {watchlists.length === 0 ? (
+        <p>No watchlists</p>
+      ) : (
+        <div className="watchlist-items">
+          {watchlists.map((watchlist: any, index) => (
             <div key={index} className="watchlist-item">
-              <div className="watchlist-name">{list.name}</div>
-              <div className="watchlist-items-count">{list.items?.length || 0} items</div>
+              <div className="watchlist-name">{watchlist.name}</div>
+              <div className="watchlist-items">
+                {watchlist.items.map((item: any, idx: number) => (
+                  <div key={idx} className="watchlist-item-symbol">
+                    {item.symbol}: ${item.price.toFixed(2)} ({item.change24h > 0 ? '+' : ''}{item.change24h.toFixed(2)}%)
+                  </div>
+                ))}
+              </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

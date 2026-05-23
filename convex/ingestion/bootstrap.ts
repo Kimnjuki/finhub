@@ -55,3 +55,75 @@ export const fetchKrakenInstruments = mutation({
     return { success: true };
   },
 });
+
+// Ingestion mutations for tick data, OHLCV, etc.
+export const ingestTick = mutation({
+  async handler(ctx: any, args: any) {
+    const { instrumentId, sourceId, price, size, side, tradeId, isMakerOrder, tsUtc, receivedAt } = args;
+    await ctx.db.insert("tickData", {
+      instrumentId,
+      sourceId,
+      price,
+      size,
+      side,
+      tradeId,
+      isMakerOrder,
+      tsUtc,
+      receivedAt,
+    });
+    return { success: true };
+  },
+});
+
+export const ingestOhlcv = mutation({
+  async handler(ctx: any, args: any) {
+    const { instrumentId, sourceId, interval, open, high, low, close, volume, quoteVolume, tradeCount, tsUtc, isClosed } = args;
+    await ctx.db.insert("ohlcvData", {
+      instrumentId,
+      sourceId,
+      interval,
+      open,
+      high,
+      low,
+      close,
+      volume,
+      quoteVolume,
+      tradeCount,
+      tsUtc,
+      isClosed,
+    });
+    return { success: true };
+  },
+});
+
+export const ingestOrderBook = mutation({
+  async handler(ctx: any, args: any) {
+    const { instrumentId, sourceId, level, bids, asks, sequence, tsUtc, receivedAt } = args;
+    await ctx.db.insert("orderBookSnapshots", {
+      instrumentId,
+      sourceId,
+      level,
+      bids,
+      asks,
+      sequence,
+      tsUtc,
+      receivedAt,
+    });
+    return { success: true };
+  },
+});
+
+export const ingestStreamMessage = mutation({
+  async handler(ctx: any, args: any) {
+    const { sourceId, instrumentId, channel, payload, tsUtc, receivedAt } = args;
+    await ctx.db.insert("streamMessages", {
+      sourceId,
+      instrumentId,
+      channel,
+      payload,
+      tsUtc,
+      receivedAt,
+    });
+    return { success: true };
+  },
+});

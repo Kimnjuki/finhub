@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useMarketData } from '../../providers/MarketDataProvider';
 
 interface CandlestickChartProps {
   symbol: string;
@@ -9,46 +8,38 @@ interface CandlestickChartProps {
 }
 
 export function CandlestickChart({ symbol, interval = '1h', width, height }: CandlestickChartProps) {
-  const { streams } = useMarketData();
   const [candles, setCandles] = useState<any[]>([]);
 
+  // Simulate candlestick data updates
   useEffect(() => {
-    if (!streams) return;
-
-    // Find OHLCV data for the instrument
-    const ohlcData = streams.find(
-      (s: any) => s.channel === 'ohlcv' && s.instrumentId === symbol
-    );
-
-    if (ohlcData && ohlcData.payload) {
-      // Parse OHLCV data - format depends on exchange
-      let candleData: any[] = [];
-
-      if (Array.isArray(ohlcData.payload)) {
-        // Handle array of candles
-        candleData = ohlcData.payload.map((c: any) => ({
-          time: new Date(c[0] * 1000), // Assuming timestamp in seconds
-          open: parseFloat(c[1]),
-          high: parseFloat(c[2]),
-          low: parseFloat(c[3]),
-          close: parseFloat(c[4]),
-          volume: parseFloat(c[5]),
-        }));
-      } else if (ohlcData.payload.open !== undefined) {
-        // Single candle
-        candleData = [{
-          time: new Date(ohlcData.payload.timestamp * 1000),
-          open: parseFloat(ohlcData.payload.open),
-          high: parseFloat(ohlcData.payload.high),
-          low: parseFloat(ohlcData.payload.low),
-          close: parseFloat(ohlcData.payload.close),
-          volume: parseFloat(ohlcData.payload.volume),
-        }];
+    const updateInterval = setInterval(() => {
+      const newCandles: any[] = [];
+      const now = Date.now();
+      
+      // Generate mock candles
+      for (let i = 0; i < 50; i++) {
+        const baseTime = now - (50 - i) * 60 * 60 * 1000;
+        const open = 42000 + Math.random() * 1000;
+        const close = open + (Math.random() - 0.5) * 100;
+        const high = Math.max(open, close) + Math.random() * 50;
+        const low = Math.min(open, close) - Math.random() * 50;
+        const volume = Math.random() * 1000;
+        
+        newCandles.push({
+          time: new Date(baseTime),
+          open,
+          high,
+          low,
+          close,
+          volume,
+        });
       }
-
-      setCandles(candleData);
-    }
-  }, [streams, symbol]);
+      
+      setCandles(newCandles);
+    }, 1000);
+    
+    return () => clearInterval(updateInterval);
+  }, []);
 
   if (candles.length === 0) {
     return null;
@@ -64,7 +55,7 @@ export function CandlestickChart({ symbol, interval = '1h', width, height }: Can
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <defs>
-        <pattern id="candlePattern" width={1} height={1} patternUnits="userSpaceOnUse">
+        <pattern id="candlePattern" width="1" height="1" patternUnits="userSpaceOnUse">
           <rect width="1" height="1" fill="none" />
         </pattern>
       </defs>

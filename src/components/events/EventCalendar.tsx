@@ -1,41 +1,51 @@
 import React, { useEffect, useState } from 'react';
-import { useMarketData } from '../../providers/MarketDataProvider';
 
 interface EventCalendarProps {
   symbols?: string[];
 }
 
 export function EventCalendar({ symbols }: EventCalendarProps) {
-  const { streams } = useMarketData();
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>(([]));
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Simulate fetching events data
   useEffect(() => {
-    if (!streams) return;
+    let mounted = true;
+    setTimeout(() => {
+      if (mounted) {
+        const mockEvents = [
+          { title: 'CPI Report', description: 'Consumer Price Index release', impact: 'high', startTsUtc: Date.now() + 3600000, country: 'US' },
+          { title: 'FOMC Meeting', description: 'Federal Open Market Committee meeting', impact: 'critical', startTsUtc: Date.now() + 7200000, country: 'US' },
+          { title: 'GDP Data', description: 'Gross Domestic Product release', impact: 'medium', startTsUtc: Date.now() + 10800000, country: 'US' },
+        ];
+        setEvents(mockEvents);
+        setIsLoading(false);
+      }
+    }, 1000);
+    
+    return () => { mounted = false; };
+  }, []);
 
-    // Filter for economic events
-    const filteredEvents = streams.filter(
-      (s: any) => s.channel === 'economic_calendar' && symbols?.some(sym => s.instrumentId?.includes(sym))
-    );
-
-    setEvents(filteredEvents.slice(0, 5)); // Limit to 5 events
-  }, [streams, symbols]);
+  if (isLoading) {
+    return <div>Loading events...</div>;
+  }
 
   return (
     <div className="event-calendar">
       <h3>Economic Calendar</h3>
-      <div className="event-list">
-        {events.length === 0 ? (
-          <p>No upcoming events</p>
-        ) : (
-          events.map((event: any, index) => (
+      {events.length === 0 ? (
+        <p>No upcoming events</p>
+      ) : (
+        <div className="event-list">
+          {events.map((event: any, index) => (
             <div key={index} className="event-item">
-              <div className="event-title">{event.payload?.title || event.payload?.event}</div>
-              <div className="event-time">{event.payload?.startTsUtc || 'TBD'}</div>
-              <div className="event-impact">{event.payload?.impact || 'Medium'}</div>
+              <div className="event-title">{event.title}</div>
+              <div className="event-time">{new Date(event.startTsUtc).toLocaleString()}</div>
+              <div className={`event-impact impact-${event.impact}`}>{event.impact}</div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

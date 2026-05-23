@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useMarketData } from '../../providers/MarketDataProvider';
+import { useMarketData } from '../../contexts/MarketDataContext';
 
 interface MarketTabsProps {
   symbols: string[];
@@ -7,7 +7,9 @@ interface MarketTabsProps {
 }
 
 export function MarketTabs({ symbols, onSymbolChange }: MarketTabsProps) {
-  const { streams } = useMarketData();
+
+
+    const { cryptoData, isLoading } = useMarketData();
   const [activeSymbol, setActiveSymbol] = useState(symbols[0] || '');
 
   useEffect(() => {

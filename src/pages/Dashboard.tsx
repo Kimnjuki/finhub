@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useMarketData } from '../providers/MarketDataProvider';
+import { useMarketData } from '../contexts/MarketDataContext';
 import { InstrumentTicker } from '../components/market/InstrumentTicker';
 import { OrderBookDepth } from '../components/market/OrderBookDepth';
 import { CandlestickChart } from '../components/charts/CandlestickChart';
@@ -15,7 +15,9 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ initialSymbols }: DashboardProps) {
-  const { instruments, streams } = useMarketData();
+
+
+    const { cryptoData, isLoading } = useMarketData();
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(initialSymbols || []);
 
   useEffect(() => {

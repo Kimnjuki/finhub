@@ -66,7 +66,9 @@ const authMode = v.union(
 
 export default defineSchema({
 
-  // ── IDENTITY & ACCESS ────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 1: IDENTITY & ACCESS
+  // ═══════════════════════════════════════════════════════════════════════════
   users: defineTable({
     email: v.string(),
     displayName: v.optional(v.string()),
@@ -148,7 +150,37 @@ export default defineSchema({
   })
     .index('by_user', ['userId']),
 
-  // ── PLANS, BILLING, ENTITLEMENTS ─────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 2: MONETIZATION (consolidated)
+  // ═══════════════════════════════════════════════════════════════════════════
+  entitlementModel: defineTable({
+    userId: v.string(),
+    sourceId: v.optional(v.string()),
+    channel: v.optional(entitlementChannel),
+    featureName: v.optional(v.string()),
+    accessLevel,
+    grantedBy: v.optional(v.string()),
+    grantedAt: v.float64(),
+    expiresAt: v.optional(v.float64()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_and_source', ['userId', 'sourceId'])
+    .index('by_user_feature', ['userId', 'featureName'])
+    .index('by_user_source_channel', ['userId', 'sourceId', 'channel']),
+
+  featureRegistry: defineTable({
+    featureName: v.string(),
+    description: v.optional(v.string()),
+    featureType: v.union(v.literal('data_channel'), v.literal('ai_feature'), v.literal('api_access'), v.literal('alert_capability'), v.literal('portfolio_tracking'), v.literal('admin_tool')),
+    requiredAccessLevel: accessLevel,
+    isActive: v.boolean(),
+    supabaseFeatureId: v.optional(v.string()),
+    createdAt: v.float64(),
+  })
+    .index('by_feature_name', ['featureName'])
+    .index('by_type', ['featureType'])
+    .index('by_active', ['isActive']),
+
   subscriptionPlans: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
@@ -191,17 +223,6 @@ export default defineSchema({
     .index('by_plan', ['planId'])
     .index('by_status', ['status'])
     .index('by_stripe_id', ['stripeSubscriptionId']),
-
-  featureAccess: defineTable({
-    userId: v.string(),
-    featureName: v.string(),
-    accessLevel,
-    expiresAt: v.optional(v.float64()),
-    grantedBy: v.optional(v.string()),
-    createdAt: v.float64(),
-  })
-    .index('by_user', ['userId'])
-    .index('by_user_and_feature', ['userId', 'featureName']),
 
   dataEntitlements: defineTable({
     userId: v.string(),
@@ -250,7 +271,61 @@ export default defineSchema({
   })
     .index('by_user', ['userId']),
 
-  // ── MARKET SOURCES & INSTRUMENTS ─────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 3: MARKET DATA — Canonical Instrument Registry & Sources
+  // ═══════════════════════════════════════════════════════════════════════════
+  canonicalInstruments: defineTable({
+    symbol: v.string(),
+    name: v.string(),
+    baseAsset: v.string(),
+    quoteAsset: v.string(),
+    assetClass,
+    marketType,
+    sector: v.optional(v.string()),
+    country: v.optional(v.string()),
+    description: v.optional(v.string()),
+    iconUrl: v.optional(v.string()),
+    cik: v.optional(v.string()),
+    isin: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_symbol', ['symbol'])
+    .index('by_asset_class', ['assetClass'])
+    .index('by_active', ['active'])
+    .index('by_sector', ['sector']),
+
+  sourceInstruments: defineTable({
+    canonicalInstrumentId: v.string(),
+    sourceId: v.string(),
+    exchangeSymbol: v.string(),
+    exchange: v.optional(v.string()),
+    contractSize: v.optional(v.float64()),
+    tickSize: v.optional(v.float64()),
+    minOrderSize: v.optional(v.float64()),
+    expiresAt: v.optional(v.float64()),
+    settlementAsset: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_canonical', ['canonicalInstrumentId'])
+    .index('by_source', ['sourceId'])
+    .index('by_exchange_symbol', ['exchangeSymbol'])
+    .index('by_source_and_symbol', ['sourceId', 'exchangeSymbol']),
+
+  instrumentAliases: defineTable({
+    canonicalInstrumentId: v.string(),
+    alias: v.string(),
+    aliasType: v.union(v.literal('ticker'), v.literal('common_name'), v.literal('old_symbol'), v.literal('coin_gecko'), v.literal('coin_market_cap')),
+    sourceId: v.optional(v.string()),
+    createdAt: v.float64(),
+  })
+    .index('by_canonical', ['canonicalInstrumentId'])
+    .index('by_alias', ['alias'])
+    .index('by_alias_type', ['aliasType']),
+
   marketSources: defineTable({
     name: v.string(),
     sourceType,
@@ -318,6 +393,25 @@ export default defineSchema({
     .index('by_checked_at', ['checkedAt'])
     .index('by_degraded', ['isDegraded']),
 
+  exchangeMetrics: defineTable({
+    sourceId: v.string(),
+    instrumentId: v.optional(v.string()),
+    metricName: v.union(
+      v.literal('latency_p50'), v.literal('latency_p95'), v.literal('latency_p99'),
+      v.literal('uptime_24h'), v.literal('uptime_7d'), v.literal('uptime_30d'),
+      v.literal('spread_avg'), v.literal('depth_1pct'), v.literal('depth_2pct'),
+      v.literal('volume_24h'), v.literal('trades_per_sec'), v.literal('stream_freshness_ms'),
+      v.literal('error_rate'), v.literal('reconnect_count'), v.literal('message_gap_count')
+    ),
+    value: v.float64(),
+    tsUtc: v.float64(),
+    createdAt: v.float64(),
+  })
+    .index('by_source', ['sourceId'])
+    .index('by_source_metric', ['sourceId', 'metricName'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_ts', ['tsUtc']),
+
   marketInstruments: defineTable({
     symbol: v.string(),
     canonicalSymbol: v.string(),
@@ -344,7 +438,9 @@ export default defineSchema({
     .index('by_asset_class', ['assetClass'])
     .index('by_market_type', ['marketType']),
 
-  // ── STREAMS & SNAPSHOTS ──────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 3b: MARKET DATA — Streams & Snapshots
+  // ═══════════════════════════════════════════════════════════════════════════
   marketStreams: defineTable({
     sourceId: v.string(),
     instrumentId: v.string(),
@@ -358,6 +454,7 @@ export default defineSchema({
     lastErrorAt: v.optional(v.float64()),
     lastErrorMsg: v.optional(v.string()),
     resyncCount: v.optional(v.float64()),
+    lagMs: v.optional(v.float64()),
     createdAt: v.float64(),
     updatedAt: v.float64(),
   })
@@ -487,7 +584,9 @@ export default defineSchema({
     .index('by_instrument_ts', ['instrumentId', 'tsUtc'])
     .index('by_side', ['side']),
 
-  // ── DATA LINEAGE ─────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 3c: DATA LINEAGE
+  // ═══════════════════════════════════════════════════════════════════════════
   rawFeedEvents: defineTable({
     sourceId: v.string(),
     instrumentId: v.optional(v.string()),
@@ -538,7 +637,9 @@ export default defineSchema({
     .index('by_derived_record', ['derivedTableName', 'derivedRecordId'])
     .index('by_stage', ['processingStage']),
 
-  // ── ONCHAIN DATA ─────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 4: ONCHAIN DATA
+  // ═══════════════════════════════════════════════════════════════════════════
   onchainMetrics: defineTable({
     assetId: v.string(),
     metricName: v.union(
@@ -555,7 +656,9 @@ export default defineSchema({
     .index('by_asset_metric', ['assetId', 'metricName'])
     .index('by_ts', ['tsUtc']),
 
-  // ── EVENTS & NEWS ────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 5: EVENTS & NEWS
+  // ═══════════════════════════════════════════════════════════════════════════
   events: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
@@ -638,7 +741,9 @@ export default defineSchema({
     .index('by_event', ['eventId'])
     .index('by_user_and_event', ['userId', 'eventId']),
 
-  // ── SIGNALS & AI ─────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 6: INTELLIGENCE — Signals, AI, Alerts
+  // ═══════════════════════════════════════════════════════════════════════════
   signals: defineTable({
     instrumentId: v.string(),
     sourceId: v.optional(v.string()),
@@ -651,6 +756,7 @@ export default defineSchema({
     targetPrice: v.optional(v.float64()),
     stopLoss: v.optional(v.float64()),
     generatedBy: v.optional(signalSourceType),
+    strategyVersion: v.optional(v.string()),
     metadata: v.optional(v.string()),
     expiresAt: v.optional(v.float64()),
     tsUtc: v.float64(),
@@ -668,6 +774,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     endpointUrl: v.string(),
     modelName: v.optional(v.string()),
+    modelVersion: v.optional(v.string()),
     requiredAccessLevel: accessLevel,
     isActive: v.boolean(),
     supabaseFeatureId: v.string(),
@@ -690,6 +797,7 @@ export default defineSchema({
     input: v.optional(v.string()),
     output: v.string(),
     model: v.optional(v.string()),
+    modelVersion: v.optional(v.string()),
     latencyMs: v.optional(v.float64()),
     tokensUsed: v.optional(v.float64()),
     createdAt: v.float64(),
@@ -698,13 +806,55 @@ export default defineSchema({
     .index('by_user', ['userId'])
     .index('by_instrument', ['instrumentId']),
 
-  // ── ALERTS & WATCHLISTS ──────────────────────────────────────────────────
+  aiRuns: defineTable({
+    aiFeatureId: v.string(),
+    userId: v.optional(v.string()),
+    runType: v.union(v.literal('prediction'), v.literal('signal_generation'), v.literal('sentiment_analysis'), v.literal('screener'), v.literal('summarization')),
+    promptVersion: v.optional(v.string()),
+    modelVersion: v.string(),
+    inputSummary: v.optional(v.string()),
+    outputSummary: v.string(),
+    confidence: v.optional(v.float64()),
+    latencyMs: v.float64(),
+    tokensUsed: v.optional(v.float64()),
+    status: v.union(v.literal('pending'), v.literal('running'), v.literal('completed'), v.literal('failed')),
+    errorMsg: v.optional(v.string()),
+    createdAt: v.float64(),
+    completedAt: v.optional(v.float64()),
+  })
+    .index('by_feature', ['aiFeatureId'])
+    .index('by_user', ['userId'])
+    .index('by_run_type', ['runType'])
+    .index('by_status', ['status'])
+    .index('by_created_at', ['createdAt']),
+
+  aiRunSources: defineTable({
+    aiRunId: v.string(),
+    sourceType: v.union(v.literal('signal'), v.literal('ohlcv'), v.literal('tick'), v.literal('orderbook'), v.literal('funding'), v.literal('news'), v.literal('onchain'), v.literal('social')),
+    sourceId: v.string(),
+    instrumentId: v.optional(v.string()),
+    recordId: v.string(),
+    weight: v.optional(v.float64()),
+    createdAt: v.float64(),
+  })
+    .index('by_run', ['aiRunId'])
+    .index('by_source_type', ['sourceType'])
+    .index('by_record', ['recordId']),
+
   alerts: defineTable({
     userId: v.string(),
     instrumentId: v.optional(v.string()),
     sourceId: v.optional(v.string()),
     type: alertCondition,
-    conditionConfig: v.string(),
+    conditionConfig: v.object({
+      operator: v.optional(v.union(v.literal('and'), v.literal('or'), v.literal('none'))),
+      rules: v.array(v.object({
+        field: v.string(),
+        operator: v.union(v.literal('gt'), v.literal('gte'), v.literal('lt'), v.literal('lte'), v.literal('eq'), v.literal('neq'), v.literal('crosses_above'), v.literal('crosses_below'), v.literal('pct_change_gt'), v.literal('pct_change_lt')),
+        value: v.float64(),
+        secondaryValue: v.optional(v.float64()),
+      })),
+    }),
     deliveryChannels: v.array(v.string()),
     cooldownSeconds: v.optional(v.float64()),
     lastTriggeredAt: v.optional(v.float64()),
@@ -737,6 +887,9 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_next_retry', ['nextRetryAt']),
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 7: USER LAYER — Watchlists, Portfolio, Notifications
+  // ═══════════════════════════════════════════════════════════════════════════
   watchlists: defineTable({
     userId: v.string(),
     name: v.string(),
@@ -760,7 +913,6 @@ export default defineSchema({
     .index('by_instrument', ['instrumentId'])
     .index('by_watchlist_and_instrument', ['watchlistId', 'instrumentId']),
 
-  // ── PORTFOLIO ────────────────────────────────────────────────────────────
   portfolioAccounts: defineTable({
     userId: v.string(),
     name: v.string(),
@@ -826,7 +978,6 @@ export default defineSchema({
     .index('by_type', ['transactionType'])
     .index('by_executed_at', ['executedAt']),
 
-  // ── SOCIAL & COMMUNITY ───────────────────────────────────────────────────
   follows: defineTable({
     userId: v.string(),
     targetType: v.union(v.literal('coin'), v.literal('symbol'), v.literal('country'), v.literal('category'), v.literal('watchlist'), v.literal('user')),
@@ -847,7 +998,6 @@ export default defineSchema({
   })
     .index('by_user', ['userId']),
 
-  // ── NOTIFICATIONS ────────────────────────────────────────────────────────
   notifications: defineTable({
     userId: v.optional(v.string()),
     title: v.optional(v.string()),
@@ -899,7 +1049,9 @@ export default defineSchema({
     .index('by_active', ['isActive'])
     .index('by_event', ['events']),
 
-  // ── VERIFICATION & KYC ──────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 8: VERIFICATION & KYC
+  // ═══════════════════════════════════════════════════════════════════════════
   userVerifications: defineTable({
     userId: v.optional(v.string()),
     verificationType: v.union(v.literal('proof_of_address'), v.literal('id_document'), v.literal('analyst_certification'), v.literal('accredited_investor')),

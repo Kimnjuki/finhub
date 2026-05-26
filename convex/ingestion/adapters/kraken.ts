@@ -230,6 +230,16 @@ export class KrakenAdapter implements ExchangeAdapter {
     }
   }
 
+  private mapKrakenChannelToStandard(channel: string): string {
+    const map: Record<string, string> = {
+      "trade": "trades",
+      "book": "orderbook_l2",
+      "ticker": "ticker",
+      "ohlc": "ohlcv",
+    };
+    return map[channel] || "unknown";
+  }
+
   private attemptReconnect() {
     if (this.reconnectAttempts >= 10) {
       console.error("[Kraken] Max reconnect attempts reached");

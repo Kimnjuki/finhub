@@ -1,5 +1,5 @@
 import { ExchangeAdapter, NormalizedMessage, NormalizedTrade } from "../types";
-import { ingestTick, ingestOhlcv, ingestOrderBook, ingestStreamMessage } from "../ingestion/bootstrap.ts";
+import { ingestTick, ingestOhlcv, ingestOrderBook, ingestStreamMessage } from "../ingestion/bootstrap";
 import client from "../../../src/integrations/convex/client";
 
 export class CoinbaseAdapter implements ExchangeAdapter {

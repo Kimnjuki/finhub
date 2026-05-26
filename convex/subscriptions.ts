@@ -1,30 +1,29 @@
-import { query } from "./_generated/server";
+import { mutation } from "convex/server";
 import { v } from "convex/values";
 
-export const listActivePlans = query({
-  args: {},
-  handler: async (ctx: any) => {
-    return ctx.db
-      .query("subscriptionPlans")
-      .withIndex("by_active", (q: any) => q.eq("isActive", true))
-      .collect();
+export const subscribeToInstruments = mutation({
+  args: {
+    userId: v.string(),
+    symbols: v.array(v.string()),
+  },
+  async handler(ctx: any, { userId, symbols }: { userId: string; symbols: string[] }) {
+    // Update or create user's data entitlements for the subscribed symbols
+    // For simplicity, we'll upsert a record in a table that tracks user's market subscriptions
+    // This could be a new table or using dataEntitlements
+    // For now, we'll just log and return the symbols
+    console.log(`Subscribing ${userId} to ${symbols.join(',')}`);
+    // In a real implementation, you'd insert/update records in a userSubscriptions or dataEntitlements table
+    return symbols;
   },
 });
 
-export const getUserSubscription = query({
-  args: { userId: v.string() },
-  handler: async (ctx: any, { userId }: { userId: string }) => {
-const sub = await ctx.db
-  .query("userSubscriptions")
-  .withIndex("by_user", (q: any) => q.eq("userId", userId))
-  .filter((q: any) => q.eq(q.field("status"), "active"))
-  .first();
-    if (!sub) return null;
-const plan = await ctx.db
-  .query("subscriptionPlans")
-  .withIndex("by_name")
-  .filter((q: any) => q.eq(q.field("name"), sub.planId))
-  .first();
-    return { subscription: sub, plan };
+export const unsubscribeFromInstruments = mutation({
+  args: {
+    userId: v.string(),
+    symbols: v.array(v.string()),
+  },
+  async handler(ctx: any, { userId, symbols }: { userId: string; symbols: string[] }) {
+    console.log(`Unsubscribing ${userId} from ${symbols.join(',')}`);
+    return symbols;
   },
 });

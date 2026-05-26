@@ -1,8 +1,9 @@
 {
-  "include": [
-    "convex/ingestion/*"
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
   ],
-  "composite": true,
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
@@ -15,8 +16,7 @@
     "noUnusedLocals": false,
     "strictNullChecks": false,
     "types": ["node"],
-    "moduleResolution": "node16",
-    "module": "node16",
-    "ignoreDeprecations": "6.0"
+    "moduleResolution": "bundler",
+    "module": "ESNext"
   }
 }

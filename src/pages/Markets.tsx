@@ -11,7 +11,7 @@ const Markets: React.FC = () => {
         keywords="cryptocurrency market, stock market, Fortune 500 stocks, crypto trading, stock trading, market analysis, trading signals"
       />
       <div className="min-h-screen bg-background">
-        <MarketTabs />
+        <MarketTabs symbols={['BTC-USD', 'ETH-USD']} />
       </div>
     </>
   );

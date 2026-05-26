@@ -9,7 +9,7 @@ const ForexChart = () => {
       <div className="h-[400px] w-full">
         <TradingViewWidget
           symbol="FX:EURUSD"
-          theme="dark"
+          theme="Dark"
           locale="en"
           autosize
           hide_side_toolbar={false}

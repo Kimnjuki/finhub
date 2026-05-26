@@ -17,5 +17,7 @@ declare module "convex/server" {
   const query: any;
   const defineMutation: any;
   const mutation: any;
+  const defineSchema: any;
+  const defineTable: any;
   // Add other members if needed
 }

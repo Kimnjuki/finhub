@@ -1,3 +1,5 @@
+/// <reference types="convex" />
+/// <reference path="./_generated/server.d.ts" />
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -23,6 +25,14 @@ const streamChannel = v.union(
   v.literal('funding'), v.literal('open_interest'), v.literal('liquidations'),
   v.literal('mark_price'), v.literal('index_price'), v.literal('nav')
 );
+const entitlementChannel = v.union(
+  v.literal('trades'), v.literal('ticker'), v.literal('orderbook_l1'),
+  v.literal('orderbook_l2'), v.literal('orderbook_l3'), v.literal('kline'),
+  v.literal('funding'), v.literal('open_interest'), v.literal('liquidations'),
+  v.literal('mark_price'), v.literal('index_price'), v.literal('nav'),
+  v.literal('news'), v.literal('signals'), v.literal('ai_predictions'),
+  v.literal('alerts'), v.literal('portfolio'), v.literal('admin')
+);
 const alertCondition = v.union(
   v.literal('price_above'), v.literal('price_below'), v.literal('price_pct_change'),
   v.literal('volume_spike'), v.literal('spread_widening'), v.literal('funding_change'),
@@ -34,6 +44,9 @@ const signalType = v.union(
   v.literal('sentiment'), v.literal('onchain_flow'), v.literal('funding_arb'),
   v.literal('cross_asset'), v.literal('ai_generated')
 );
+const signalSourceType = v.union(
+  v.literal('ai_generated'), v.literal('rules_based'), v.literal('human')
+);
 const impactType = v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('critical'));
 const eventStatus = v.union(
   v.literal('scheduled'), v.literal('tentative'), v.literal('postponed'),
@@ -41,6 +54,14 @@ const eventStatus = v.union(
 );
 const streamStatus = v.union(
   v.literal('active'), v.literal('stale'), v.literal('resyncing'), v.literal('disabled')
+);
+const connectionState = v.union(
+  v.literal('connected'), v.literal('disconnected'), v.literal('reconnecting'),
+  v.literal('error'), v.literal('paused'), v.literal('initializing')
+);
+const authMode = v.union(
+  v.literal('none'), v.literal('api_key'), v.literal('oauth'),
+  v.literal('basic'), v.literal('jwt')
 );
 
 export default defineSchema({
@@ -96,12 +117,36 @@ export default defineSchema({
     entityType: v.optional(v.string()),
     entityId: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
-    metadata: v.optional(v.string()),
+    metadata: v.optional(v.object({})),
     createdAt: v.float64(),
   })
     .index('by_user', ['userId'])
     .index('by_action', ['action'])
     .index('by_created_at', ['createdAt']),
+
+  userPreferences: defineTable({
+    userId: v.string(),
+    theme: v.optional(v.union(v.literal('light'), v.literal('dark'), v.literal('system'))),
+    defaultChartInterval: v.optional(v.string()),
+    defaultChartStyle: v.optional(v.string()),
+    notificationPreferences: v.optional(v.object({
+      email: v.optional(v.boolean()),
+      push: v.optional(v.boolean()),
+      sms: v.optional(v.boolean()),
+      inApp: v.optional(v.boolean()),
+      quietHoursStart: v.optional(v.float64()),
+      quietHoursEnd: v.optional(v.float64()),
+    })),
+    alertDefaults: v.optional(v.object({
+      cooldownSeconds: v.optional(v.float64()),
+      deliveryChannels: v.optional(v.array(v.string())),
+    })),
+    dashboardLayout: v.optional(v.string()),
+    locale: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId']),
 
   // ── PLANS, BILLING, ENTITLEMENTS ─────────────────────────────────────────
   subscriptionPlans: defineTable({
@@ -161,7 +206,7 @@ export default defineSchema({
   dataEntitlements: defineTable({
     userId: v.string(),
     sourceId: v.string(),
-    channel: v.string(),
+    channel: entitlementChannel,
     marketType: v.optional(v.string()),
     accessLevel,
     grantedAt: v.float64(),
@@ -221,6 +266,7 @@ export default defineSchema({
     docsUrl: v.optional(v.string()),
     active: v.boolean(),
     requiresAuth: v.optional(v.boolean()),
+    authMode: v.optional(authMode),
     rateLimit: v.optional(v.float64()),
     createdAt: v.float64(),
     updatedAt: v.float64(),
@@ -229,6 +275,48 @@ export default defineSchema({
     .index('by_type', ['sourceType'])
     .index('by_active', ['active'])
     .index('by_region', ['region']),
+
+  exchangeConnections: defineTable({
+    sourceId: v.string(),
+    name: v.string(),
+    wsUrl: v.optional(v.string()),
+    restUrl: v.optional(v.string()),
+    state: connectionState,
+    authMode,
+    credentialsRef: v.optional(v.string()),
+    subscribedChannels: v.array(streamChannel),
+    lastConnectedAt: v.optional(v.float64()),
+    lastDisconnectedAt: v.optional(v.float64()),
+    reconnectAttempts: v.optional(v.float64()),
+    maxReconnectAttempts: v.optional(v.float64()),
+    reconnectDelayMs: v.optional(v.float64()),
+    heartbeatIntervalMs: v.optional(v.float64()),
+    heartbeatTimeoutMs: v.optional(v.float64()),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_source', ['sourceId'])
+    .index('by_state', ['state'])
+    .index('by_last_connected', ['lastConnectedAt']),
+
+  connectionHealth: defineTable({
+    exchangeConnectionId: v.string(),
+    state: connectionState,
+    latencyMs: v.optional(v.float64()),
+    messagesReceived: v.optional(v.float64()),
+    messagesSent: v.optional(v.float64()),
+    errorsLastHour: v.optional(v.float64()),
+    reconnectsToday: v.optional(v.float64()),
+    lastHeartbeatAt: v.optional(v.float64()),
+    lastErrorAt: v.optional(v.float64()),
+    lastErrorMessage: v.optional(v.string()),
+    isDegraded: v.optional(v.boolean()),
+    checkedAt: v.float64(),
+  })
+    .index('by_connection', ['exchangeConnectionId'])
+    .index('by_state', ['state'])
+    .index('by_checked_at', ['checkedAt'])
+    .index('by_degraded', ['isDegraded']),
 
   marketInstruments: defineTable({
     symbol: v.string(),
@@ -263,6 +351,8 @@ export default defineSchema({
     channel: streamChannel,
     status: streamStatus,
     lastSequence: v.optional(v.float64()),
+    lastMessageKey: v.optional(v.string()),
+    lastChecksum: v.optional(v.string()),
     lastMessageAt: v.optional(v.float64()),
     errorCount: v.optional(v.float64()),
     lastErrorAt: v.optional(v.float64()),
@@ -274,7 +364,8 @@ export default defineSchema({
     .index('by_instrument', ['instrumentId'])
     .index('by_source_and_channel', ['sourceId', 'channel'])
     .index('by_status', ['status'])
-    .index('by_last_message', ['lastMessageAt']),
+    .index('by_last_message', ['lastMessageAt'])
+    .index('by_message_key', ['lastMessageKey']),
 
   streamSnapshots: defineTable({
     sourceId: v.string(),
@@ -283,12 +374,14 @@ export default defineSchema({
     payloadRef: v.string(),
     sequence: v.optional(v.float64()),
     checksum: v.optional(v.string()),
+    messageKey: v.optional(v.string()),
     tsUtc: v.float64(),
     createdAt: v.float64(),
   })
     .index('by_instrument', ['instrumentId'])
     .index('by_source_and_channel', ['sourceId', 'channel'])
-    .index('by_ts', ['tsUtc']),
+    .index('by_ts', ['tsUtc'])
+    .index('by_message_key', ['messageKey']),
 
   streamMessages: defineTable({
     sourceId: v.string(),
@@ -296,6 +389,8 @@ export default defineSchema({
     channel: streamChannel,
     payloadRef: v.string(),
     sequence: v.optional(v.float64()),
+    messageKey: v.optional(v.string()),
+    checksum: v.optional(v.string()),
     tsUtc: v.float64(),
     receivedAt: v.float64(),
     processingMs: v.optional(v.float64()),
@@ -304,7 +399,8 @@ export default defineSchema({
     .index('by_instrument', ['instrumentId'])
     .index('by_source_and_channel', ['sourceId', 'channel'])
     .index('by_ts', ['tsUtc'])
-    .index('by_sequence', ['sequence']),
+    .index('by_sequence', ['sequence'])
+    .index('by_message_key', ['messageKey']),
 
   tickData: defineTable({
     instrumentId: v.string(),
@@ -349,6 +445,7 @@ export default defineSchema({
     bids: v.string(),
     asks: v.string(),
     sequence: v.optional(v.float64()),
+    checksum: v.optional(v.string()),
     tsUtc: v.float64(),
     receivedAt: v.float64(),
   })
@@ -389,6 +486,57 @@ export default defineSchema({
     .index('by_instrument', ['instrumentId'])
     .index('by_instrument_ts', ['instrumentId', 'tsUtc'])
     .index('by_side', ['side']),
+
+  // ── DATA LINEAGE ─────────────────────────────────────────────────────────
+  rawFeedEvents: defineTable({
+    sourceId: v.string(),
+    instrumentId: v.optional(v.string()),
+    channel: streamChannel,
+    rawPayload: v.string(),
+    messageKey: v.optional(v.string()),
+    sequence: v.optional(v.float64()),
+    receivedAt: v.float64(),
+    processedAt: v.optional(v.float64()),
+    processingStatus: v.union(v.literal('pending'), v.literal('processed'), v.literal('failed'), v.literal('skipped')),
+    errorMsg: v.optional(v.string()),
+    createdAt: v.float64(),
+  })
+    .index('by_source', ['sourceId'])
+    .index('by_status', ['processingStatus'])
+    .index('by_received_at', ['receivedAt'])
+    .index('by_message_key', ['messageKey']),
+
+  normalizedFeedEvents: defineTable({
+    rawFeedEventId: v.string(),
+    sourceId: v.string(),
+    instrumentId: v.optional(v.string()),
+    channel: streamChannel,
+    eventType: v.string(),
+    normalizedPayload: v.string(),
+    sequence: v.optional(v.float64()),
+    tsUtc: v.float64(),
+    createdAt: v.float64(),
+  })
+    .index('by_raw_event', ['rawFeedEventId'])
+    .index('by_source', ['sourceId'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_ts', ['tsUtc']),
+
+  dataLineage: defineTable({
+    rawFeedEventId: v.string(),
+    normalizedFeedEventId: v.optional(v.string()),
+    derivedTableName: v.string(),
+    derivedRecordId: v.string(),
+    sourceId: v.string(),
+    instrumentId: v.optional(v.string()),
+    channel: v.optional(streamChannel),
+    processingStage: v.union(v.literal('ingested'), v.literal('normalized'), v.literal('aggregated'), v.literal('signal_generated'), v.literal('alert_triggered')),
+    createdAt: v.float64(),
+  })
+    .index('by_raw_event', ['rawFeedEventId'])
+    .index('by_normalized_event', ['normalizedFeedEventId'])
+    .index('by_derived_record', ['derivedTableName', 'derivedRecordId'])
+    .index('by_stage', ['processingStage']),
 
   // ── ONCHAIN DATA ─────────────────────────────────────────────────────────
   onchainMetrics: defineTable({
@@ -449,11 +597,13 @@ export default defineSchema({
     headline: v.string(),
     summary: v.optional(v.string()),
     sourceId: v.string(),
-    url: v.string(),
+    sourceUrl: v.string(),
+    articleId: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
     coins: v.array(v.string()),
     symbols: v.array(v.string()),
     categories: v.array(v.string()),
+    language: v.optional(v.string()),
     sentiment: v.optional(v.union(v.literal('positive'), v.literal('negative'), v.literal('neutral'))),
     sentimentScore: v.optional(v.float64()),
     publishedAt: v.float64(),
@@ -463,7 +613,8 @@ export default defineSchema({
     .index('by_source', ['sourceId'])
     .index('by_published_at', ['publishedAt'])
     .index('by_sentiment', ['sentiment'])
-    .index('by_breaking', ['isBreaking']),
+    .index('by_breaking', ['isBreaking'])
+    .index('by_article_id', ['articleId']),
 
   eventSources: defineTable({
     name: v.string(), sourceType, baseUrl: v.optional(v.string()),
@@ -499,6 +650,7 @@ export default defineSchema({
     entryPrice: v.optional(v.float64()),
     targetPrice: v.optional(v.float64()),
     stopLoss: v.optional(v.float64()),
+    generatedBy: v.optional(signalSourceType),
     metadata: v.optional(v.string()),
     expiresAt: v.optional(v.float64()),
     tsUtc: v.float64(),
@@ -507,6 +659,7 @@ export default defineSchema({
     .index('by_instrument', ['instrumentId'])
     .index('by_type', ['signalType'])
     .index('by_direction', ['direction'])
+    .index('by_generated_by', ['generatedBy'])
     .index('by_ts', ['tsUtc']),
 
   aiFeatures: defineTable({
@@ -531,7 +684,7 @@ export default defineSchema({
     .index('by_user_and_feature', ['userId', 'aiFeatureId']),
 
   aiOutputs: defineTable({
-    featureId: v.string(),
+    aiFeatureId: v.string(),
     userId: v.optional(v.string()),
     instrumentId: v.optional(v.string()),
     input: v.optional(v.string()),
@@ -541,7 +694,7 @@ export default defineSchema({
     tokensUsed: v.optional(v.float64()),
     createdAt: v.float64(),
   })
-    .index('by_feature', ['featureId'])
+    .index('by_ai_feature', ['aiFeatureId'])
     .index('by_user', ['userId'])
     .index('by_instrument', ['instrumentId']),
 
@@ -572,13 +725,17 @@ export default defineSchema({
     channel: v.string(),
     payload: v.string(),
     status: v.union(v.literal('pending'), v.literal('sent'), v.literal('failed')),
+    retryCount: v.optional(v.float64()),
+    maxRetries: v.optional(v.float64()),
+    nextRetryAt: v.optional(v.float64()),
     sentAt: v.optional(v.float64()),
     errorMsg: v.optional(v.string()),
     createdAt: v.float64(),
   })
     .index('by_alert', ['alertId'])
     .index('by_user', ['userId'])
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .index('by_next_retry', ['nextRetryAt']),
 
   watchlists: defineTable({
     userId: v.string(),
@@ -600,7 +757,74 @@ export default defineSchema({
     addedAt: v.float64(),
   })
     .index('by_watchlist', ['watchlistId'])
-    .index('by_instrument', ['instrumentId']),
+    .index('by_instrument', ['instrumentId'])
+    .index('by_watchlist_and_instrument', ['watchlistId', 'instrumentId']),
+
+  // ── PORTFOLIO ────────────────────────────────────────────────────────────
+  portfolioAccounts: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    accountType: v.union(v.literal('spot'), v.literal('margin'), v.literal('futures'), v.literal('funding'), v.literal('external')),
+    currency: v.string(),
+    initialBalance: v.float64(),
+    currentBalance: v.float64(),
+    totalDeposits: v.optional(v.float64()),
+    totalWithdrawals: v.optional(v.float64()),
+    realizedPnl: v.optional(v.float64()),
+    isActive: v.boolean(),
+    externalRef: v.optional(v.string()),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_type', ['accountType'])
+    .index('by_active', ['isActive']),
+
+  portfolioPositions: defineTable({
+    accountId: v.string(),
+    userId: v.string(),
+    instrumentId: v.string(),
+    direction: v.union(v.literal('long'), v.literal('short')),
+    quantity: v.float64(),
+    entryPrice: v.float64(),
+    currentPrice: v.optional(v.float64()),
+    unrealizedPnl: v.optional(v.float64()),
+    realizedPnl: v.optional(v.float64()),
+    marginUsed: v.optional(v.float64()),
+    leverage: v.optional(v.float64()),
+    liquidationPrice: v.optional(v.float64()),
+    isOpen: v.boolean(),
+    openedAt: v.float64(),
+    closedAt: v.optional(v.float64()),
+    updatedAt: v.float64(),
+  })
+    .index('by_account', ['accountId'])
+    .index('by_user', ['userId'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_user_and_instrument', ['userId', 'instrumentId'])
+    .index('by_open', ['isOpen']),
+
+  portfolioTransactions: defineTable({
+    accountId: v.string(),
+    userId: v.string(),
+    instrumentId: v.optional(v.string()),
+    transactionType: v.union(v.literal('buy'), v.literal('sell'), v.literal('deposit'), v.literal('withdrawal'), v.literal('transfer'), v.literal('fee'), v.literal('interest')),
+    quantity: v.optional(v.float64()),
+    price: v.optional(v.float64()),
+    totalValue: v.float64(),
+    fee: v.optional(v.float64()),
+    currency: v.string(),
+    notes: v.optional(v.string()),
+    externalRef: v.optional(v.string()),
+    executedAt: v.float64(),
+    createdAt: v.float64(),
+  })
+    .index('by_account', ['accountId'])
+    .index('by_user', ['userId'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_type', ['transactionType'])
+    .index('by_executed_at', ['executedAt']),
 
   // ── SOCIAL & COMMUNITY ───────────────────────────────────────────────────
   follows: defineTable({
@@ -636,6 +860,44 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_and_read', ['userId', 'isRead']),
+
+  notificationDeliveries: defineTable({
+    notificationId: v.string(),
+    userId: v.string(),
+    channel: v.union(v.literal('email'), v.literal('push'), v.literal('sms'), v.literal('webhook'), v.literal('in_app')),
+    status: v.union(v.literal('queued'), v.literal('delivering'), v.literal('delivered'), v.literal('failed'), v.literal('bounced')),
+    retryCount: v.float64(),
+    maxRetries: v.float64(),
+    lastAttemptAt: v.optional(v.float64()),
+    nextRetryAt: v.optional(v.float64()),
+    deliveredAt: v.optional(v.float64()),
+    provider: v.optional(v.string()),
+    providerMessageId: v.optional(v.string()),
+    errorMsg: v.optional(v.string()),
+    createdAt: v.float64(),
+  })
+    .index('by_notification', ['notificationId'])
+    .index('by_user', ['userId'])
+    .index('by_status', ['status'])
+    .index('by_next_retry', ['nextRetryAt']),
+
+  webhookEndpoints: defineTable({
+    userId: v.string(),
+    url: v.string(),
+    description: v.optional(v.string()),
+    events: v.array(v.string()),
+    secret: v.optional(v.string()),
+    isActive: v.boolean(),
+    lastTriggeredAt: v.optional(v.float64()),
+    lastSuccessAt: v.optional(v.float64()),
+    lastFailureAt: v.optional(v.float64()),
+    failureCount: v.optional(v.float64()),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_active', ['isActive'])
+    .index('by_event', ['events']),
 
   // ── VERIFICATION & KYC ──────────────────────────────────────────────────
   userVerifications: defineTable({

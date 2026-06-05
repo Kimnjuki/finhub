@@ -183,8 +183,6 @@ const RecurringBuys = () => {
               <TabsTrigger value="explore"><Target className="h-4 w-4 mr-2" />Explore Plans</TabsTrigger>
               <TabsTrigger value="roundup"><PiggyBank className="h-4 w-4 mr-2" />Round-Up</TabsTrigger>
             </TabsList>
-          </Tabs>
-
           <TabsContent value="plans" className="space-y-4">
             {activePlans.map(plan => (
               <Card key={plan.id} className="border-border/30 hover:border-emerald-500/30">
@@ -280,6 +278,7 @@ const RecurringBuys = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          </Tabs>
         </div>
 
         {/* How DCA Works */}

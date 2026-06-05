@@ -100,7 +100,7 @@ const Navigation = () => {
           <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border/40">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <User className="h-4 w-4" />
-              <span className="hidden md:inline">{user?.email}</span>
+              <span className="hidden md:inline">{user?.primaryEmailAddress?.emailAddress}</span>
             </div>
             <Button 
               onClick={signOut}

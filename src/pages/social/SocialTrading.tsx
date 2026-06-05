@@ -172,9 +172,7 @@ const SocialTrading = () => {
               <TabsTrigger value="feed"><Activity className="h-4 w-4 mr-2" />Trade Feed</TabsTrigger>
               <TabsTrigger value="following"><Users className="h-4 w-4 mr-2" />Following</TabsTrigger>
             </TabsList>
-          </Tabs>
-
-          <TabsContent value="leaderboard">
+            <TabsContent value="leaderboard">
             <div className="relative max-w-xs mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search traders..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -287,6 +285,7 @@ const SocialTrading = () => {
               ))}
             </div>
           </TabsContent>
+          </Tabs>
         </div>
       </div>
     </>

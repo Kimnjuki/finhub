@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useClerk } from '@clerk/react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from './use-toast';
 import { useNavigate } from 'react-router-dom';
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes

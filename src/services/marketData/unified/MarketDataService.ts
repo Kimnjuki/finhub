@@ -7,6 +7,7 @@ import { coindeskSource } from '../sources/coindesk';
 import { alphavantageSource } from '../sources/alphavantage';
 import { finnhubSource } from '../sources/finnhub';
 import { yahooSource } from '../sources/yahoo';
+import { coinapiSource } from '../sources/coinapi';
 
 type MarketEventListener = (event: MarketEvent) => void;
 
@@ -45,12 +46,13 @@ class MarketDataService {
       alphavantage: alphavantageSource,
       finnhub: finnhubSource,
       yahoo: yahooSource,
+      coinapi: coinapiSource,
     }).join(', '));
 
     // Initialize health tracking for all known sources
     const allSourceIds: DataSource[] = [
       'coinbase', 'kraken', 'polygon', 'coinmarketcap', 'coindesk',
-      'alphavantage', 'finnhub', 'yahoo', 'coingecko', 'binance'
+      'alphavantage', 'finnhub', 'yahoo', 'coingecko', 'binance', 'coinapi'
     ];
     for (const sourceId of allSourceIds) {
       this.sourceHealth.set(sourceId, {
@@ -120,6 +122,21 @@ class MarketDataService {
         // Try Alpha Vantage for stocks
         promises.push(this.trySource(() => alphavantageSource.getStockQuote(symbol)));
       }
+
+      // Try CoinAPI for institutional crypto/forex exchange rates
+      promises.push(this.trySource(async () => {
+        try {
+          const q = await coinapiSource.getExchangeRate(symbol, undefined, 'USD');
+          if (q) return q;
+        } catch {
+          // Try quote endpoint as fallback
+          try {
+            const q = await coinapiSource.getCurrentQuote(symbol);
+            if (q) return q;
+          } catch {}
+        }
+        return null;
+      }));
 
       // Always try Yahoo as fallback
       promises.push(this.trySource(async () => {

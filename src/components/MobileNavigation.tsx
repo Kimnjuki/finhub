@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { TrendingUp, Menu, Home, BarChart3, BookOpen, Package, Newspaper, HelpCircle, Shield } from "lucide-react";
+import { TrendingUp, Menu, Home, BarChart3, BookOpen, Package, Newspaper, HelpCircle, Shield, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const MobileNavigation = () => {
@@ -76,6 +76,54 @@ const MobileNavigation = () => {
                       </Link>
                     );
                   })}
+                  <div className="pt-2 pb-1 border-t border-border/50">
+                    <div className="flex items-center justify-between py-3">
+                      <h3 className="text-sm font-semibold text-gradient">Africa-First Features</h3>
+                      <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/30">New</Badge>
+                    </div>
+                  </div>
+                  <Link to="/mobile-money" onClick={() => setOpen(false)} className="block">
+                    <div className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-300 micro-bounce ${isActive("/mobile-money") ? "premium-card text-primary-foreground" : "hover:bg-muted/50 glass-card"}`}>
+                      <TrendingUp className="h-5 w-5" />
+                      <span className="font-medium flex-1">Mobile Money</span>
+                      <Badge className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">New</Badge>
+                    </div>
+                  </Link>
+                  <Link to="/p2p" onClick={() => setOpen(false)} className="block">
+                    <div className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-300 micro-bounce ${isActive("/p2p") ? "premium-card text-primary-foreground" : "hover:bg-muted/50 glass-card"}`}>
+                      <Users className="h-5 w-5" />
+                      <span className="font-medium flex-1">P2P Marketplace</span>
+                      <Badge className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">New</Badge>
+                    </div>
+                  </Link>
+                  <Link to="/vault" onClick={() => setOpen(false)} className="block">
+                    <div className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-300 micro-bounce ${isActive("/vault") ? "premium-card text-primary-foreground" : "hover:bg-muted/50 glass-card"}`}>
+                      <Shield className="h-5 w-5" />
+                      <span className="font-medium flex-1">Vault</span>
+                      <Badge className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">New</Badge>
+                    </div>
+                  </Link>
+                  <Link to="/learn" onClick={() => setOpen(false)} className="block">
+                    <div className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-300 micro-bounce ${isActive("/learn") ? "premium-card text-primary-foreground" : "hover:bg-muted/50 glass-card"}`}>
+                      <BookOpen className="h-5 w-5" />
+                      <span className="font-medium flex-1">Learn & Earn</span>
+                      <Badge className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">New</Badge>
+                    </div>
+                  </Link>
+                  <Link to="/recurring" onClick={() => setOpen(false)} className="block">
+                    <div className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-300 micro-bounce ${isActive("/recurring") ? "premium-card text-primary-foreground" : "hover:bg-muted/50 glass-card"}`}>
+                      <TrendingUp className="h-5 w-5" />
+                      <span className="font-medium flex-1">Recurring Buys</span>
+                      <Badge className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">New</Badge>
+                    </div>
+                  </Link>
+                  <Link to="/social-trading" onClick={() => setOpen(false)} className="block">
+                    <div className={`flex items-center gap-3 p-4 rounded-xl transition-all duration-300 micro-bounce ${isActive("/social-trading") ? "premium-card text-primary-foreground" : "hover:bg-muted/50 glass-card"}`}>
+                      <Shield className="h-5 w-5" />
+                      <span className="font-medium flex-1">Social Trading</span>
+                      <Badge className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">New</Badge>
+                    </div>
+                  </Link>
                 </div>
               </SheetContent>
             </Sheet>

@@ -1,5 +1,5 @@
 export type AssetClass = 'crypto' | 'stock' | 'forex' | 'option' | 'commodity' | 'index' | 'bond' | 'etf';
-export type DataSource = 'coinbase' | 'kraken' | 'polygon' | 'coinmarketcap' | 'coindesk' | 'alphavantage' | 'finnhub' | 'yahoo' | 'coingecko' | 'binance';
+export type DataSource = 'coinbase' | 'kraken' | 'polygon' | 'coinmarketcap' | 'coindesk' | 'alphavantage' | 'finnhub' | 'yahoo' | 'coingecko' | 'binance' | 'coinapi';
 export type DataQuality = 'institutional' | 'exchange' | 'aggregated' | 'reference';
 export type TimeInterval = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
 
@@ -132,6 +132,18 @@ export const SOURCE_CONFIGS: Record<DataSource, SourceConfig> = {
     baseUrl: 'https://api.binance.com',
     wsUrl: 'wss://stream.binance.com:9443/ws',
     features: ['ticker', 'trades', 'depth', 'kline', 'user', 'funding-rate', 'open-interest', 'liquidations'],
+  },
+  coinapi: {
+    sourceId: 'coinapi',
+    name: 'CoinAPI.io',
+    quality: 'institutional',
+    assetClasses: ['crypto', 'forex'],
+    rateLimit: 100,
+    requiresAuth: true,
+    wsSupported: true,
+    baseUrl: 'https://rest.coinapi.io',
+    wsUrl: 'wss://ws.coinapi.io/v1',
+    features: ['exchange-rates', 'quotes', 'trades', 'orderbook', 'ohlcv', 'assets', 'exchanges', 'symbols', 'metadata'],
   },
 };
 

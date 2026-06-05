@@ -59,6 +59,48 @@ const Footer = () => {
                   News
                 </Link>
               </li>
+              <li>
+                <Link to="/markets" className="text-muted-foreground hover:text-primary transition-colors">
+                  Markets
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Africa-First Features */}
+          <div>
+            <h4 className="font-semibold mb-4">Africa-First Features</h4>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/mobile-money" className="text-muted-foreground hover:text-primary transition-colors">
+                  Mobile Money
+                </Link>
+              </li>
+              <li>
+                <Link to="/p2p" className="text-muted-foreground hover:text-primary transition-colors">
+                  P2P Marketplace
+                </Link>
+              </li>
+              <li>
+                <Link to="/social-trading" className="text-muted-foreground hover:text-primary transition-colors">
+                  Social Trading
+                </Link>
+              </li>
+              <li>
+                <Link to="/vault" className="text-muted-foreground hover:text-primary transition-colors">
+                  Vault
+                </Link>
+              </li>
+              <li>
+                <Link to="/learn" className="text-muted-foreground hover:text-primary transition-colors">
+                  Learn & Earn
+                </Link>
+              </li>
+              <li>
+                <Link to="/recurring" className="text-muted-foreground hover:text-primary transition-colors">
+                  Recurring Buys
+                </Link>
+              </li>
             </ul>
           </div>
 

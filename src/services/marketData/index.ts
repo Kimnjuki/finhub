@@ -10,6 +10,7 @@ export { coindeskSource } from './sources/coindesk';
 export { alphavantageSource } from './sources/alphavantage';
 export { finnhubSource } from './sources/finnhub';
 export { yahooSource } from './sources/yahoo';
+export { coinapiSource } from './sources/coinapi';
 
 // Types
 export * from './types';

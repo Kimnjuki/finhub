@@ -89,6 +89,12 @@ const Navigation = () => {
               News
             </Button>
           </Link>
+          <Link to="/mobile-money">
+            <Button variant="outline" size="sm" className="text-[11px] hover:bg-green-500/10 hover:text-green-400 border-green-500/20">M-Pesa</Button>
+          </Link>
+          <Link to="/social-trading">
+            <Button variant="outline" size="sm" className="text-[11px] hover:bg-purple-500/10 hover:text-purple-400 border-purple-500/20">Social</Button>
+          </Link>
           
           {/* User Menu */}
           <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border/40">

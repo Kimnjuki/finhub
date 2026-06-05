@@ -26,6 +26,15 @@ import Trading from './pages/Trading';
 import Markets from './pages/Markets';
 import Subscriptions from './pages/Subscriptions';
 import DataSourceTrustPanel from './components/admin/DataSourceTrustPanel';
+
+// Coinbase-Grade Feature Pages
+import MobileMoney from './pages/mobile-money/MobileMoney';
+import P2PMarketplace from './pages/p2p/P2PMarketplace';
+import VaultPage from './pages/vault/VaultPage';
+import LearnAndEarn from './pages/learn/LearnAndEarn';
+import RecurringBuys from './pages/recurring/RecurringBuys';
+import SocialTrading from './pages/social/SocialTrading';
+
 const App = () => (
   <ThemeProvider defaultTheme="dark" storageKey="finhubafrica-theme">
     <TooltipProvider>
@@ -56,6 +65,16 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/roles" element={<RoleManagement />} />
           <Route path="/admin/infrastructure" element={<DataSourceTrustPanel />} />
+          
+          {/* Coinbase-Grade Feature Routes */}
+          <Route path="/mobile-money" element={<MobileMoney />} />
+          <Route path="/p2p" element={<P2PMarketplace />} />
+          <Route path="/vault" element={<VaultPage />} />
+          <Route path="/learn" element={<LearnAndEarn />} />
+          <Route path="/recurring" element={<RecurringBuys />} />
+          <Route path="/social-trading" element={<SocialTrading />} />
+          <Route path="/invest" element={<RecurringBuys />} />
+          <Route path="/earn" element={<LearnAndEarn />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

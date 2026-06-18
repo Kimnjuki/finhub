@@ -189,8 +189,8 @@ const Analytics = () => {
             </div>
           </footer>
         </div>
+        </div>
       </div>
-    </div>
     </>
   );
 };

@@ -179,7 +179,7 @@ export function parseTradingViewAlert(rawPayload: string): ParsedAlert {
 /**
  * Extract a field from potentially nested payload using dot notation
  */
-function extractField(payload: Record<string, any> | undefined, field: string): any {
+function extractField(payload: Record<string, any> | undefined, field: string): unknown {
   if (!payload) return undefined;
   // Check for nested fields
   const patterns = [

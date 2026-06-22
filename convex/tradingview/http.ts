@@ -1,4 +1,4 @@
-import { defineAction } from "convex/server";
+import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { processTradingViewAlert } from "./webhookHandler";
 
@@ -15,7 +15,7 @@ import { processTradingViewAlert } from "./webhookHandler";
 
 // ─── Webhook HTTP Action (called by HTTP router) ─────────────────────────
 
-export const handleTradingViewWebhook = defineAction({
+export const handleTradingViewWebhook = mutation({
   args: {
     endpointId: v.string(),
     rawBody: v.string(),
@@ -24,7 +24,7 @@ export const handleTradingViewWebhook = defineAction({
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
   },
-  async handler(ctx: any, args) {
+  async handler(ctx, args) {
     const { endpointId, rawBody, signature } = args;
 
     // 1. Find the webhook config by endpoint ID

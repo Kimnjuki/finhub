@@ -1,110 +1,188 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createChart, IChartApi, Time } from 'lightweight-charts';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+
+interface CandleData {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
 interface CandlestickChartProps {
   symbol: string;
   interval?: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 
-export function CandlestickChart({ symbol, interval = '1h', width, height }: CandlestickChartProps) {
-  const [candles, setCandles] = useState<any[]>([]);
+const INTERVAL_MAP: Record<string, string> = {
+  '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m',
+  '1h': '1h', '4h': '4h', '1d': '1d', '1w': '1w',
+};
 
-  // Simulate candlestick data updates
+export function CandlestickChart({ symbol, interval = '1h', width, height = 400 }: CandlestickChartProps) {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch historical data from Binance
   useEffect(() => {
-    const updateInterval = setInterval(() => {
-      const newCandles: any[] = [];
-      const now = Date.now();
-      
-      // Generate mock candles
-      for (let i = 0; i < 50; i++) {
-        const baseTime = now - (50 - i) * 60 * 60 * 1000;
-        const open = 42000 + Math.random() * 1000;
-        const close = open + (Math.random() - 0.5) * 100;
-        const high = Math.max(open, close) + Math.random() * 50;
-        const low = Math.min(open, close) - Math.random() * 50;
-        const volume = Math.random() * 1000;
-        
-        newCandles.push({
-          time: new Date(baseTime),
-          open,
-          high,
-          low,
-          close,
-          volume,
+    let mounted = true;
+    const fetchData = async () => {
+      try {
+        const binanceInterval = INTERVAL_MAP[interval] || '1h';
+        const response = await fetch(
+          `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${binanceInterval}&limit=200`
+        );
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        if (!mounted) return;
+
+        const candles: CandleData[] = data.map((c: any[]) => ({
+          time: Math.floor(c[0] / 1000),
+          open: parseFloat(c[1]),
+          high: parseFloat(c[2]),
+          low: parseFloat(c[3]),
+          close: parseFloat(c[4]),
+          volume: parseFloat(c[5]),
+        }));
+
+        if (!chartContainerRef.current) return;
+
+        // Destroy existing chart
+        if (chartRef.current) {
+          chartRef.current.remove();
+        }
+
+        const chart = createChart(chartContainerRef.current, {
+          width: chartContainerRef.current.clientWidth || width || 600,
+          height,
+          layout: {
+            background: { color: 'transparent' },
+            textColor: '#9CA3AF',
+          },
+          grid: {
+            vertLines: { color: '#374151' },
+            horzLines: { color: '#374151' },
+          },
+          crosshair: {
+            mode: 1,
+            vertLine: { width: 1, color: '#6B7280', style: 3 as any },
+            horzLine: { width: 1, color: '#6B7280', style: 3 as any },
+          },
+          rightPriceScale: { borderColor: '#374151' },
+          timeScale: {
+            borderColor: '#374151',
+            timeVisible: true,
+            secondsVisible: false,
+          },
         });
+
+        chartRef.current = chart;
+
+        // Candlestick series
+        const candleSeries = (chart as any).addCandlestickSeries({
+          upColor: '#10B981',
+          downColor: '#EF4444',
+          borderUpColor: '#10B981',
+          borderDownColor: '#EF4444',
+          wickUpColor: '#10B981',
+          wickDownColor: '#EF4444',
+        });
+
+        candleSeries.setData(candles.map(c => ({
+          time: c.time as Time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })));
+
+        // Volume
+        const volumeSeries = (chart as any).addHistogramSeries({
+          color: '#6B7280',
+          priceFormat: { type: 'volume' },
+          priceScaleId: 'volume',
+        });
+        chart.priceScale('volume').applyOptions({
+          scaleMargins: { top: 0.8, bottom: 0 },
+        });
+        volumeSeries.setData(candles.map(c => ({
+          time: c.time as Time,
+          value: c.volume,
+          color: c.close >= c.open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+        })));
+
+        chart.timeScale().fitContent();
+
+        // Resize handler
+        const handleResize = () => {
+          if (chartContainerRef.current && chartRef.current) {
+            chartRef.current.applyOptions({
+              width: chartContainerRef.current.clientWidth,
+              height,
+            });
+          }
+        };
+
+        window.addEventListener('resize', handleResize);
+        setLoading(false);
+
+        return () => {
+          window.removeEventListener('resize', handleResize);
+        };
+      } catch (err) {
+        if (mounted) {
+          setError('Failed to load chart data');
+          setLoading(false);
+        }
       }
-      
-      setCandles(newCandles);
-    }, 1000);
-    
-    return () => clearInterval(updateInterval);
+    };
+
+    fetchData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [symbol, interval, height, width]);
+
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
+    };
   }, []);
 
-  if (candles.length === 0) {
-    return null;
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex items-center justify-center" style={{ height }}>
+          <p className="text-destructive text-sm">{error}</p>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const maxPrice = Math.max(...candles.map(c => c.high));
-  const minPrice = Math.min(...candles.map(c => c.low));
-
-  const chartWidth = width - 40;
-  const chartHeight = height - 40;
-  const padding = 20;
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex items-center justify-center" style={{ height }}>
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <defs>
-        <pattern id="candlePattern" width="1" height="1" patternUnits="userSpaceOnUse">
-          <rect width="1" height="1" fill="none" />
-        </pattern>
-      </defs>
-      <g transform={`translate(${padding}, ${padding})`}>
-        {/* Volume bars at bottom */}
-        <g transform={`translate(0, ${chartHeight - 50})`}>
-          {candles.map((c: any, i: number) => {
-            const x = (i / candles.length) * chartWidth;
-            const barWidth = chartWidth / candles.length * 0.8;
-            const y = c.volume;
-            return (
-              <rect
-                key={i}
-                x={x}
-                y={0}
-                width={barWidth}
-                height={y}
-                fill="blue"
-                opacity={0.3}
-              />
-            );
-          })}
-        </g>
-
-        {/* Candlestick wicks */}
-        {candles.map((c: any, i: number) => {
-          const x = (i / candles.length) * chartWidth + 0.5;
-          return (
-            <g key={i}>
-              <line
-                x1={x}
-                y1={c.low}
-                x2={x}
-                y2={c.high}
-                stroke={c.close >= c.open ? 'green' : 'red'}
-                strokeWidth={2}
-              />
-              <rect
-                x={x - 0.5}
-                y={Math.min(c.open, c.close)}
-                width={1}
-                height={Math.abs(c.close - c.open)}
-                fill={c.close >= c.open ? 'green' : 'red'}
-                stroke={c.close >= c.open ? 'green' : 'red'}
-              />
-            </g>
-          );
-        })}
-      </g>
-    </svg>
+    <div ref={chartContainerRef} className="w-full rounded-lg overflow-hidden" />
   );
 }
+
+export default CandlestickChart;

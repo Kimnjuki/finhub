@@ -1,7 +1,7 @@
 // Signal for MACD crossover detection
-import { defineAction, action, defineQuery, query } from "convex/server";
+import { action } from "convex/server";
 
-export const checkMacdCrossover = defineAction({
+export const checkMacdCrossover = action({
   async handler(ctx: any, args: any) {
     // TODO: Implement MACD crossover detection logic
     return { crossover: false };

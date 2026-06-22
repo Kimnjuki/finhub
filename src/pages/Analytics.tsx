@@ -1,19 +1,60 @@
+import React, { Suspense, lazy, useState, useEffect, useRef } from "react";
 import MarketAnalytics from "@/components/MarketAnalytics";
 import CurrencyHeatMap from "@/components/CurrencyHeatMap";
 import CryptoList from "@/components/CryptoList";
 import ForexList from "@/components/ForexList";
-import SocialSentiment from "@/components/SocialSentiment";
 import MobileNavigation from "@/components/MobileNavigation";
 import SEOHead from "@/components/SEOHead";
 import MarketStats from "@/components/MarketStats";
 import ForexStats from "@/components/ForexStats";
-import CryptoChart from "@/components/CryptoChart";
-import ForexChart from "@/components/ForexChart";
-import TechnicalSignals from "@/components/TechnicalSignals";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
+
+// Lazy-load heavy chart/analytics components
+const CryptoChart = lazy(() => import("@/components/CryptoChart"));
+const ForexChart = lazy(() => import("@/components/ForexChart"));
+const TechnicalSignals = lazy(() => import("@/components/TechnicalSignals"));
+const SocialSentiment = lazy(() => import("@/components/SocialSentiment"));
+
+const SectionFallback = () => (
+  <div className="glass-card rounded-lg animate-pulse">
+    <div className="p-6 space-y-4">
+      <div className="h-6 bg-muted rounded w-48" />
+      <div className="h-[300px] bg-muted rounded" />
+    </div>
+  </div>
+);
+
+// Use IntersectionObserver to lazy-render sections when they enter viewport
+const LazySection = ({ children, fallback = <SectionFallback />, preRender = false }: { children: React.ReactNode; fallback?: React.ReactNode; preRender?: boolean }) => {
+  const [isVisible, setIsVisible] = useState(preRender);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isVisible) return;
+    const el = ref.current;
+    if (!el) return;
+
+    // Use requestAnimationFrame for initial sections to avoid blocking paint
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // Use requestIdleCallback if available, otherwise rAF
+          const schedule = (window as any).requestIdleCallback || requestAnimationFrame;
+          schedule(() => setIsVisible(true), { timeout: 100 });
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px 0px" } // Start loading 200px before visible
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isVisible]);
+
+  return <div ref={ref}>{isVisible ? children : fallback}</div>;
+};
 
 const Analytics = () => {
   const structuredData = {
@@ -27,6 +68,15 @@ const Analytics = () => {
       "category": "Trading Analytics"
     }
   };
+
+  // Structure renders immediately (header, layout, skeletons)
+  const [showDeferred, setShowDeferred] = useState(false);
+
+  useEffect(() => {
+    // Defer non-critical sections (analytics grid, footer) by a small amount
+    const schedule = (window as any).requestIdleCallback || ((cb: Function) => setTimeout(cb, 200));
+    schedule(() => setShowDeferred(true), { timeout: 300 });
+  }, []);
 
   return (
     <>
@@ -102,7 +152,8 @@ const Analytics = () => {
             </div>
           </header>
           
-          {/* Market Stats Overview */}
+          {/* STRUCTURE RENDERS IMMEDIATELY - no waiting */}
+          {/* Market Stats Overview (lightweight, renders structure immediately, data loads async) */}
           <div className="space-y-6 mb-8">
             <div className="transform hover:scale-[1.02] transition-all duration-300">
               <MarketStats />
@@ -112,82 +163,96 @@ const Analytics = () => {
             </div>
           </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-            <div className="group transform hover:scale-[1.02] transition-all duration-300">
-              <CryptoChart />
-            </div>
-            <div className="group transform hover:scale-[1.02] transition-all duration-300">
-              <ForexChart />
-            </div>
-          </div>
+          {/* Charts Section (lazy loaded with Suspense - shows skeleton immediately) */}
+          <LazySection>
+            <Suspense fallback={<SectionFallback />}>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+                <div className="group transform hover:scale-[1.02] transition-all duration-300">
+                  <CryptoChart />
+                </div>
+                <div className="group transform hover:scale-[1.02] transition-all duration-300">
+                  <ForexChart />
+                </div>
+              </div>
+            </Suspense>
+          </LazySection>
 
-          {/* Technical Signals */}
-          <div className="mb-8">
-            <div className="transform hover:scale-[1.02] transition-all duration-300">
-              <TechnicalSignals />
-            </div>
-          </div>
+          {/* Technical Signals (lazy loaded) */}
+          <LazySection>
+            <Suspense fallback={<SectionFallback />}>
+              <div className="mb-8">
+                <div className="transform hover:scale-[1.02] transition-all duration-300">
+                  <TechnicalSignals />
+                </div>
+              </div>
+            </Suspense>
+          </LazySection>
 
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
-            {/* Analytics Panel */}
-            <div className="xl:col-span-1">
-              <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
-                <MarketAnalytics />
+          {/* Analytics Grid (deferred slightly) */}
+          {showDeferred && (
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+              <div className="xl:col-span-1">
+                <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
+                  <MarketAnalytics />
+                </div>
+              </div>
+              
+              <div className="xl:col-span-1">
+                <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
+                  <CurrencyHeatMap />
+                </div>
+              </div>
+              
+              <div className="xl:col-span-2 space-y-6">
+                <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
+                  <CryptoList />
+                </div>
+                <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
+                  <ForexList />
+                </div>
               </div>
             </div>
-            
-            {/* Heat Map */}
-            <div className="xl:col-span-1">
-              <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
-                <CurrencyHeatMap />
-              </div>
-            </div>
-            
-            {/* Market Lists */}
-            <div className="xl:col-span-2 space-y-6">
-              <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
-                <CryptoList />
-              </div>
-              <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
-                <ForexList />
-              </div>
-            </div>
-          </div>
+          )}
 
-          {/* Social Sentiment */}
-          <div className="mb-8">
-            <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
-              <SocialSentiment />
-            </div>
-          </div>
+          {/* Social Sentiment (lazy loaded) */}
+          <LazySection>
+            <Suspense fallback={<SectionFallback />}>
+              <div className="mb-8">
+                <div className="transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
+                  <SocialSentiment />
+                </div>
+              </div>
+            </Suspense>
+          </LazySection>
 
           {/* Analytics Footer */}
-          <footer className="mt-12 py-8 border-t border-border/30 bg-card/50 rounded-lg backdrop-blur-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div className="space-y-2 group hover:bg-primary/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">🎯</div>
-                <h4 className="font-semibold text-primary group-hover:text-primary/80">Precision Analysis</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  AI-powered market analysis with 95% accuracy rate
-                </p>
+          {showDeferred && (
+            <footer className="mt-12 py-8 border-t border-border/30 bg-card/50 rounded-lg backdrop-blur-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div className="space-y-2 group hover:bg-primary/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
+                  <div className="text-2xl mb-2">🎯</div>
+                  <h4 className="font-semibold text-primary group-hover:text-primary/80">Precision Analysis</h4>
+                  <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
+                    AI-powered market analysis with 95% accuracy rate
+                  </p>
+                </div>
+                <div className="space-y-2 group hover:bg-success/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
+                  <div className="text-2xl mb-2">⚡</div>
+                  <h4 className="font-semibold text-success group-hover:text-success/80">Real-Time Updates</h4>
+                  <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
+                    Market data updated every second for instant insights
+                  </p>
+                </div>
+                <div className="space-y-2 group hover:bg-accent/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
+                  <div className="text-2xl mb-2">📊</div>
+                  <h4 className="font-semibold text-accent group-hover:text-accent/80">Professional Tools</h4>
+                  <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
+                    Industry-grade analytics used by professional traders
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2 group hover:bg-success/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">⚡</div>
-                <h4 className="font-semibold text-success group-hover:text-success/80">Real-Time Updates</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  Market data updated every second for instant insights
-                </p>
-              </div>
-              <div className="space-y-2 group hover:bg-accent/5 p-4 rounded-lg transition-all duration-300 cursor-pointer">
-                <div className="text-2xl mb-2">📊</div>
-                <h4 className="font-semibold text-accent group-hover:text-accent/80">Professional Tools</h4>
-                <p className="text-xs text-muted-foreground group-hover:text-foreground/70">
-                  Industry-grade analytics used by professional traders
-                </p>
-              </div>
-            </div>
-          </footer>
+            </footer>
+          )}
         </div>
         </div>
       </div>

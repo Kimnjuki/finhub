@@ -36,7 +36,7 @@ const DataSourceTrustPanel = React.lazy(() => import('./components/admin/DataSou
 const MobileMoney = React.lazy(() => import('./pages/mobile-money/MobileMoney'));
 const P2PMarketplace = React.lazy(() => import('./pages/p2p/P2PMarketplace'));
 const VaultPage = React.lazy(() => import('./pages/vault/VaultPage'));
-const LearnAndEarn = React.lazy(() => import('./pages/learn/LearnAndEarn'));
+const LearnAndEarn = React.lazy(() => import('./pages/LearningAcademy'));
 const RecurringBuys = React.lazy(() => import('./pages/recurring/RecurringBuys'));
 const SocialTrading = React.lazy(() => import('./pages/social/SocialTrading'));
 
@@ -140,6 +140,11 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/learn" element={
+                <ProtectedRoute>
+                  <LearnAndEarn />
+                </ProtectedRoute>
+              } />
+              <Route path="/academy" element={
                 <ProtectedRoute>
                   <LearnAndEarn />
                 </ProtectedRoute>

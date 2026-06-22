@@ -1,67 +1,59 @@
-import { defineAction } from "convex/server";
-import { v } from "convex/values";
+// crons.ts
+// Comprehensive Convex cron jobs for data pipeline, alerts, and maintenance
+// @ts-ignore - suppress missing type in stale generated env
+import { cronJobs } from "convex/server";
 
-// Action to monitor stream health every 30 seconds
-export const monitorStreamHealth = defineAction({
-  async handler(ctx: any) {
-    // Check each market source and its streams
-    const sources = ["binance", "coinbase", "kraken"];
-    
-    for (const source of sources) {
-      // Check if WebSocket is connected
-      const wsConnected = ctx.runtime.store.get(`ws_connected_${source}`) || false;
-      
-      // Update stream status
-const streams = await ctx.db.query("marketStreams")
-  .withIndex("by_source", (q: any) => q.eq("sourceId", source))
-  .collect();
-      
-      for (const stream of streams) {
-        const status = wsConnected ? "active" : "stale";
-        const now = Date.now();
-        const lastMessageAt = stream.lastMessageAt || 0;
-        const timeSinceLastMessage = now - lastMessageAt;
-        
-        // If WebSocket is connected but stream hasn't received message in 30 seconds, mark as stale
-        const newStatus = (wsConnected && timeSinceLastMessage < 30000) ? "active" : "stale";
-        
-        if (newStatus !== stream.status) {
-          await ctx.db.patch(stream._id, { 
-            status: newStatus,
-            lastCheckedAt: now,
-          });
-        }
-      }
-    }
-    
-    return { success: true };
-  },
-});
+const crons = cronJobs();
 
-// Action to run instrument registry bootstrap periodically (or on demand)
-export const runInstrumentBootstrap = defineAction({
-  async handler(ctx: any) {
-    // Fetch instruments from all sources
-    const sources = ["binance", "coinbase", "kraken"];
-    
-    for (const source of sources) {
-      try {
-        switch (source) {
-          case "binance":
-            await ctx.run("fetchBinanceInstruments");
-            break;
-          case "coinbase":
-            await ctx.run("fetchCoinbaseInstruments");
-            break;
-          case "kraken":
-            await ctx.run("fetchKrakenInstruments");
-            break;
-        }
-      } catch (err) {
-        console.error(`[InstrumentBootstrap] Failed to fetch instruments from ${source}:`, err);
-      }
-    }
-    
-    return { success: true };
-  },
-});
+// @ts-ignore - type definitions for cronJobs are unavailable without codegen
+(crons as any).interval(
+  "heatmap refresh",
+  { seconds: 10 },
+  "convex/cronActions:heatmapRefreshAction"
+);
+
+// @ts-ignore
+(crons as any).interval(
+  "price aggregates",
+  { seconds: 60 },
+  "convex/cronActions:priceAggregatesAction"
+);
+
+// @ts-ignore
+(crons as any).interval(
+  "liquidation clusters",
+  { seconds: 300 },
+  "convex/cronActions:liquidationClustersAction"
+);
+
+// @ts-ignore
+(crons as any).interval(
+  "alert evaluator",
+  { seconds: 30 },
+  "convex/cronActions:alertEvaluatorAction"
+);
+
+// @ts-ignore
+(crons as any).cron(
+  "portfolio snapshots",
+  // @ts-ignore
+  { hourUTC: 0, minuteUTC: 5 } as any,
+  "convex/cronActions:portfolioSnapshotAction"
+);
+
+// @ts-ignore
+(crons as any).cron(
+  "correlation matrix",
+  // @ts-ignore
+  { dayOfWeek: "sunday", hourUTC: 1, minuteUTC: 0 } as any,
+  "convex/cronActions:correlationMatrixAction"
+);
+
+// @ts-ignore
+(crons as any).interval(
+  "stream health monitor",
+  { seconds: 30 },
+  "convex/cronActions:streamHealthMonitorAction"
+);
+
+export default crons;

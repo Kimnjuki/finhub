@@ -128,19 +128,17 @@ export const TradingChartContainer = () => {
     refetchInterval: 60000,
   });
 
-  // Fetch comparison assets data
-  const comparisonQueries = comparisonAssets.map((asset) =>
-    useQuery({
-      queryKey: ['chartData', asset.symbol, timeframe],
-      queryFn: () => fetchChartData(asset.symbol, timeframe),
-      refetchInterval: 60000,
-      enabled: comparisonAssets.length > 0,
-    })
-  );
+  const comparisonSymbols = comparisonAssets.map((asset) => asset.symbol);
+  const { data: comparisonResults } = useQuery({
+    queryKey: ['chartData', 'comparison', comparisonSymbols.join(','), timeframe],
+    queryFn: async () => Promise.all(comparisonAssets.map((asset) => fetchChartData(asset.symbol, timeframe))),
+    refetchInterval: 60000,
+    enabled: comparisonAssets.length > 0,
+  });
 
-  const comparisonData = comparisonQueries.map((query, index) => ({
-    ...comparisonAssets[index],
-    data: query.data || [],
+  const comparisonData = comparisonAssets.map((asset, index) => ({
+    ...asset,
+    data: comparisonResults?.[index] || [],
   }));
 
   const closePrices = chartData?.map(d => d.close) || [];

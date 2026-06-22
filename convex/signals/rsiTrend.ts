@@ -1,4 +1,4 @@
-import * as convex from "convex";
+import { query } from "./_generated/server";
 
 // Interface for OHLCV data based on Convex schema
 interface OhlcvData {
@@ -24,7 +24,7 @@ interface RsiTrendArgs {
 }
 
 // Signal for RSI trend detection
-export const checkRsiTrend = convex.defineAction({
+export const checkRsiTrend = query({
   async handler(ctx: any, args: RsiTrendArgs) {
     const { instrumentId, timeframe = "1h", rsiPeriod = 14 } = args;
 

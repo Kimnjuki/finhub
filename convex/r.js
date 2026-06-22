@@ -1,0 +1,1 @@
+const fs=require("fs");const W=(n,L)=>fs.writeFileSync("convex/"+n,L.join("\n"));W("test6.txt",["hello"]);console.log("ok");

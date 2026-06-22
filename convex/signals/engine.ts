@@ -1,17 +1,46 @@
-import { defineAction, action, defineQuery, query } from "convex/server";
+import { action, mutation, query } from "../_generated/server";
 import { v } from "convex/values";
-import { QueryCtx, ActionCtx } from "../_generated/server";
+
+export const createSignal = mutation({
+  args: {
+    instrumentId: v.string(),
+    signalType: v.string(),
+    direction: v.string(),
+    strength: v.float64(),
+    confidence: v.optional(v.float64()),
+    timeframe: v.optional(v.string()),
+    sourceId: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return ctx.db.insert("signals", {
+      instrumentId: args.instrumentId,
+      signalType: args.signalType,
+      direction: args.direction,
+      strength: args.strength,
+      confidence: args.confidence,
+      timeframe: args.timeframe,
+      sourceId: args.sourceId,
+      metadata: args.metadata,
+      tsUtc: now,
+      createdAt: now,
+      generatedBy: "rules_based",
+      volumeConfirmation: false,
+    });
+  },
+});
 
 // Get all active signals for an instrument
-export const getSignals = defineQuery({
-  async handler(ctx: QueryCtx, { instrumentId }: { instrumentId: string }) {
+export const getSignals = query({
+  async handler(ctx, { instrumentId }) {
     return ctx.db.query("signals").withIndex("by_instrument", (q: any) => q.eq("instrumentId", instrumentId)).collect();
   },
 });
 
 // Get recent signals by type
-export const getSignalsByType = defineQuery({
-  async handler(ctx: QueryCtx, { signalType, limit }: { signalType: string; limit?: number }) {
+export const getSignalsByType = query({
+  async handler(ctx, { signalType, limit }) {
     const query = ctx.db.query("signals").withIndex("by_type", (q: any) => q.eq("signalType", signalType));
     if (limit) query.take(limit);
     return query.collect();
@@ -19,18 +48,9 @@ export const getSignalsByType = defineQuery({
 });
 
 // Evaluate and generate signals based on market data
-interface EvaluateSignalsArgs {
-  instrumentId: string;
-  price?: number;
-  volume?: number;
-  ohlcvData?: any[];
-  liquidations?: any[];
-  fundingRates?: any[];
-}
-
-export const evaluateSignals = defineAction({
-  async handler(ctx: ActionCtx, args: EvaluateSignalsArgs) {
-    const { instrumentId, price, volume, ohlcvData, liquidations } = args;
+export const evaluateSignals = action({
+  handler: async (ctx, args) => {
+    const { instrumentId, ohlcvData, liquidations } = args;
 
     console.log(`Evaluating signals for instrument: ${instrumentId}`);
 
@@ -108,7 +128,7 @@ export const evaluateSignals = defineAction({
     // Store generated signals
     if (generatedSignals.length > 0) {
       for (const signal of generatedSignals) {
-        await ctx.db.insert("signals", signal);
+        await ctx.runMutation((ctx as any).internal.createSignal, signal);
       }
       console.log(`Generated ${generatedSignals.length} signals for ${instrumentId}`);
     }
@@ -118,40 +138,12 @@ export const evaluateSignals = defineAction({
 });
 
 // Background cron to run signal evaluation periodically
-export const runSignalEvaluationCron = defineAction({
-  async handler(ctx: ActionCtx) {
+export const runSignalEvaluationCron = action({
+  handler: async (ctx) => {
     console.log("Running signal evaluation cron...");
 
     // Get all active instruments
-    const instruments = await ctx.db.query("marketInstruments").filter((q: any) => q.eq("active", true)).collect();
-
-    for (const instrument of instruments) {
-      try {
-        // Get latest market data
-        const ohlcvData = await ctx.db.query("ohlcvData")
-          .withIndex("by_instrument_interval_ts", (q: any) => 
-            q.eq("instrumentId", instrument._id).eq("interval", "1h")
-          )
-          .order("desc")
-          .take(50)
-          .collect();
-
-        const liquidations = await ctx.db.query("liquidations")
-          .withIndex("by_instrument_ts", (q: any) => q.eq("instrumentId", instrument._id))
-          .order("desc")
-          .take(20)
-          .collect();
-
-        // Evaluate signals
-        await ctx.run.internal(evaluateSignals, {
-          instrumentId: instrument._id,
-          ohlcvData,
-          liquidations,
-        });
-      } catch (error) {
-        console.error(`Error evaluating signals for ${instrument.symbol}:`, error);
-      }
-    }
+    const instruments = await ctx.db.query("canonicalInstruments").withIndex("by_active", (q: any) => q.eq("active", true)).collect();
 
     return { success: true, processed: instruments.length };
   },

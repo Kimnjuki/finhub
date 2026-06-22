@@ -38,7 +38,7 @@ export function mapAlertToOrder(
   const side = parsed.side || 'buy';
 
   // Determine order type
-  let orderType = parsed.orderType || config.defaultOrderType || 'market';
+  const orderType = parsed.orderType || config.defaultOrderType || 'market';
   
   // Determine quantity
   let quantity = parsed.quantity || 0;

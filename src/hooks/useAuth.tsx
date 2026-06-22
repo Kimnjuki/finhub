@@ -1,5 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useClerk } from '@clerk/react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useToast } from './use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,18 +6,17 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart'];
 
 export function useAuth() {
-  const { user } = useClerk();
   const { toast } = useToast();
   const navigate = useNavigate();
   const lastActivityRef = useRef<number>(Date.now());
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [user] = useState<any>(null); // Auth is disabled, all users are guests
 
   const handleSignOut = useCallback(async () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    (window as any).Clerk.signOut();
     toast({ title: 'Signed out', description: 'You have been successfully signed out.' });
     navigate('/auth');
   }, [navigate, toast]);
@@ -65,7 +63,7 @@ export function useAuth() {
 
   return {
     user,
-    loading: !user,
+    loading: false, // Always loaded since auth is disabled
     signIn: () => { window.location.href = '/auth'; },
     signOut: handleSignOut,
   };

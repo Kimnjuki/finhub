@@ -1,0 +1,16 @@
+export declare const getUserByEmail: any;
+export declare const listActivePlans: any;
+export declare const getUserSubscription: any;
+export declare const listUpcomingEvents: any;
+export declare const getUserRoles: any;
+export declare const assignRole: any;
+export declare const queryMarketInstruments: any;
+export declare const queryMarketStreams: any;
+export declare const streamMarketData: any;
+export declare const getLatestTick: any;
+export declare const getOhlcv: any;
+export declare const getAlerts: any;
+export declare const getSignals: any;
+export declare const getEvents: any;
+export declare const getWatchlists: any;
+export declare const getStreamHealth: any;

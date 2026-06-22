@@ -1,9 +1,12 @@
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 
+const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+
 const fetchBitcoinPrices = async () => {
+  const baseUrl = isDev ? '/api/coingecko' : 'https://api.coingecko.com';
   const response = await fetch(
-    "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=180&interval=daily"
+    `${baseUrl}/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=180&interval=daily`
   );
   const data = await response.json();
   

@@ -151,7 +151,7 @@ const P2PMarketplace = () => {
                       <div className="grid grid-cols-3 gap-2">
                         {paymentMethods.slice(0, 6).map(pm => (
                           <label key={pm.name} className="flex items-center gap-2 p-2 rounded-lg border border-border/30 cursor-pointer hover:border-blue-500/30 text-xs">
-                            <input type="checkbox" className="rounded" />
+                            <input type="checkbox" id={`payment-${pm.name}`} name={`payment-${pm.name}`} className="rounded" />
                             {pm.icon} {pm.name}
                           </label>
                         ))}

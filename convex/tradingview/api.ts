@@ -1,4 +1,4 @@
-import { actionGeneric } from "convex/server";
+import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -10,7 +10,7 @@ import { v } from "convex/values";
 
 // ─── Webhook Config Management ───────────────────────────────────────────
 
-export const createWebhookConfig = actionGeneric({
+export const createWebhookConfig = mutation({
   args: {
     userId: v.string(),
     label: v.string(),
@@ -70,7 +70,7 @@ export const createWebhookConfig = actionGeneric({
   },
 });
 
-export const updateWebhookConfig = actionGeneric({
+export const updateWebhookConfig = mutation({
   args: {
     configId: v.string(),
     label: v.optional(v.string()),
@@ -97,7 +97,7 @@ export const updateWebhookConfig = actionGeneric({
   },
 });
 
-export const regenerateHmacSecret = actionGeneric({
+export const regenerateHmacSecret = mutation({
   args: { configId: v.string() },
   async handler(ctx: any, args: any) {
     const newSecret = Array.from({ length: 32 }, () => 
@@ -113,7 +113,7 @@ export const regenerateHmacSecret = actionGeneric({
   },
 });
 
-export const deleteWebhookConfig = actionGeneric({
+export const deleteWebhookConfig = mutation({
   args: { configId: v.string() },
   async handler(ctx: any, args: any) {
     // Soft delete by deactivating
@@ -125,7 +125,7 @@ export const deleteWebhookConfig = actionGeneric({
   },
 });
 
-export const getWebhookConfig = actionGeneric({
+export const getWebhookConfig = mutation({
   args: { configId: v.string() },
   async handler(ctx: any, args: any) {
     const config = await ctx.db.get(args.configId);
@@ -138,7 +138,7 @@ export const getWebhookConfig = actionGeneric({
   },
 });
 
-export const listWebhookConfigs = actionGeneric({
+export const listWebhookConfigs = mutation({
   args: { userId: v.string() },
   async handler(ctx: any, args: any) {
     const configs = await ctx.db.query("tvWebhookConfigs")
@@ -154,7 +154,7 @@ export const listWebhookConfigs = actionGeneric({
 
 // ─── Exchange Credentials Management ─────────────────────────────────────
 
-export const saveExchangeCredentials = actionGeneric({
+export const saveExchangeCredentials = mutation({
   args: {
     userId: v.string(),
     exchange: v.string(),
@@ -199,7 +199,7 @@ export const saveExchangeCredentials = actionGeneric({
   },
 });
 
-export const getExchangeCredentials = actionGeneric({
+export const getExchangeCredentials = mutation({
   args: { credentialId: v.string() },
   async handler(ctx: any, args: any) {
     const cred = await ctx.db.get(args.credentialId);
@@ -215,7 +215,7 @@ export const getExchangeCredentials = actionGeneric({
   },
 });
 
-export const listExchangeCredentials = actionGeneric({
+export const listExchangeCredentials = mutation({
   args: { userId: v.string() },
   async handler(ctx: any, args: any) {
     const credentials = await ctx.db.query("exchangeCredentials")
@@ -235,7 +235,7 @@ export const listExchangeCredentials = actionGeneric({
   },
 });
 
-export const deleteExchangeCredentials = actionGeneric({
+export const deleteExchangeCredentials = mutation({
   args: { credentialId: v.string() },
   async handler(ctx: any, args: any) {
     await ctx.db.patch(args.credentialId, { isActive: false, updatedAt: Date.now() });
@@ -245,7 +245,7 @@ export const deleteExchangeCredentials = actionGeneric({
 
 // ─── Webhook Event Log Queries ───────────────────────────────────────────
 
-export const listWebhookEvents = actionGeneric({
+export const listWebhookEvents = mutation({
   args: { 
     userId: v.string(),
     limit: v.optional(v.float64()),
@@ -267,7 +267,7 @@ export const listWebhookEvents = actionGeneric({
 
 // ─── Order Queries ───────────────────────────────────────────────────────
 
-export const listOrders = actionGeneric({
+export const listOrders = mutation({
   args: {
     userId: v.string(),
     limit: v.optional(v.float64()),
@@ -298,7 +298,7 @@ export const listOrders = actionGeneric({
 
 // ─── Position Queries ────────────────────────────────────────────────────
 
-export const listOpenPositions = actionGeneric({
+export const listOpenPositions = mutation({
   args: { userId: v.string() },
   async handler(ctx: any, args: any) {
     const positions = await ctx.db.query("tvPositions")
@@ -311,7 +311,7 @@ export const listOpenPositions = actionGeneric({
   },
 });
 
-export const getDailyStats = actionGeneric({
+export const getDailyStats = mutation({
   args: {
     userId: v.string(),
     date: v.optional(v.string()),
@@ -338,7 +338,7 @@ export const getDailyStats = actionGeneric({
 
 // ─── Alert Mapping Management ────────────────────────────────────────────
 
-export const createAlertMapping = actionGeneric({
+export const createAlertMapping = mutation({
   args: {
     userId: v.string(),
     configId: v.string(),

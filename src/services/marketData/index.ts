@@ -11,6 +11,8 @@ export { alphavantageSource } from './sources/alphavantage';
 export { finnhubSource } from './sources/finnhub';
 export { yahooSource } from './sources/yahoo';
 export { coinapiSource } from './sources/coinapi';
+export { marketauxSource } from './sources/marketaux';
+export { twelvedataSource } from './sources/twelvedata';
 
 // Types
 export * from './types';

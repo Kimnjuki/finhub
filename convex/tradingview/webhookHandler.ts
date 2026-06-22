@@ -6,6 +6,15 @@ import { mapAlertToOrder } from "./orderMapper";
 import { executeOrder } from "./exchanges/executor";
 import { checkRiskControls } from "./riskControls";
 
+interface ProcessTradingViewAlertArgs {
+  configId: string;
+  userId: string;
+  rawPayload: string;
+  ipAddress?: string;
+  userAgent?: string;
+  signature?: string;
+}
+
 /**
  * Main entry point for processing a TradingView webhook alert.
  * This action is called by the HTTP endpoint after HMAC verification.
@@ -19,7 +28,7 @@ export const processTradingViewAlert = action({
     userAgent: v.optional(v.string()),
     signature: v.optional(v.string()),
   },
-  async handler(ctx: ActionCtx, args) {
+  async handler(ctx: ActionCtx, args: ProcessTradingViewAlertArgs) {
     const { configId, userId, rawPayload } = args;
     const startTime = Date.now();
 

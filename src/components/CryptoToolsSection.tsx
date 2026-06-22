@@ -24,7 +24,11 @@ const CryptoToolsSection = () => {
 
   useEffect(() => {
     const ids = cryptoList.map(c => c.id).join(',');
-    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`)
+    // Route through Vite proxy in dev to avoid CORS
+    const baseUrl = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+      ? '/api/coingecko'
+      : 'https://api.coingecko.com';
+    fetch(`${baseUrl}/api/v3/simple/price?ids=${ids}&vs_currencies=usd`)
       .then(r => r.json())
       .then(d => {
         const prices: Record<string, number> = {};

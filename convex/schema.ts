@@ -64,6 +64,10 @@ const authMode = v.union(
   v.literal('basic'), v.literal('jwt')
 );
 
+const difficultyLevel = v.union(
+  v.literal('beginner'), v.literal('intermediate'), v.literal('advanced')
+);
+
 export default defineSchema({
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -83,10 +87,16 @@ export default defineSchema({
     lastActiveAt: v.optional(v.float64()),
     createdAt: v.float64(),
     updatedAt: v.float64(),
+    referralCode: v.optional(v.string()),
+    referredBy: v.optional(v.string()),
+    kycStatus: v.optional(v.union(v.literal('none'), v.literal('pending'), v.literal('approved'), v.literal('rejected'))),
+    totalAlertsFired: v.optional(v.float64()),
+    streakDays: v.optional(v.float64()),
   })
     .index('by_email', ['email'])
     .index('by_supabase_id', ['supabaseUserId'])
-    .index('by_last_active', ['lastActiveAt']),
+    .index('by_last_active', ['lastActiveAt'])
+    .index('by_referral_code', ['referralCode']),
 
   roles: defineTable({ roleName: v.string() })
     .index('by_role_name', ['roleName']),
@@ -128,9 +138,17 @@ export default defineSchema({
 
   userPreferences: defineTable({
     userId: v.string(),
+    defaultCurrency: v.optional(v.string()),
     theme: v.optional(v.union(v.literal('light'), v.literal('dark'), v.literal('system'))),
     defaultChartInterval: v.optional(v.string()),
     defaultChartStyle: v.optional(v.string()),
+    defaultView: v.optional(v.string()),
+    whaleTradingThresholdUsd: v.optional(v.float64()),
+    preferredExchanges: v.optional(v.array(v.string())),
+    hideSmallCaps: v.optional(v.boolean()),
+    enableLearningCards: v.optional(v.boolean()),
+    alertSoundEnabled: v.optional(v.boolean()),
+    dashboardWidgets: v.optional(v.string()),
     notificationPreferences: v.optional(v.object({
       email: v.optional(v.boolean()),
       push: v.optional(v.boolean()),
@@ -557,6 +575,8 @@ export default defineSchema({
     fundingTime: v.float64(),
     predictedRate: v.optional(v.float64()),
     tsUtc: v.float64(),
+    annualizedRate: v.optional(v.float64()),
+    percentile7d: v.optional(v.float64()),
   })
     .index('by_instrument', ['instrumentId'])
     .index('by_instrument_ts', ['instrumentId', 'tsUtc']),
@@ -582,7 +602,8 @@ export default defineSchema({
   })
     .index('by_instrument', ['instrumentId'])
     .index('by_instrument_ts', ['instrumentId', 'tsUtc'])
-    .index('by_side', ['side']),
+    .index('by_side', ['side'])
+    .index('by_ts', ['tsUtc']),
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DOMAIN 3c: DATA LINEAGE
@@ -646,7 +667,10 @@ export default defineSchema({
       v.literal('active_addresses'), v.literal('transaction_count'),
       v.literal('large_transactions'), v.literal('exchange_inflow'),
       v.literal('exchange_outflow'), v.literal('nvt'), v.literal('sopr'),
-      v.literal('mvrv'), v.literal('hash_rate'), v.literal('difficulty')
+      v.literal('mvrv'), v.literal('hash_rate'), v.literal('difficulty'),
+      v.literal('mvrv_zscore'), v.literal('hodl_waves'), v.literal('stablecoin_supply_ratio'),
+      v.literal('exchange_reserve'), v.literal('realized_cap'), v.literal('puell_multiple'),
+      v.literal('net_unrealized_pnl')
     ),
     value: v.float64(),
     source: v.string(),
@@ -662,8 +686,13 @@ export default defineSchema({
   events: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
-    category: v.union(v.literal('macro'), v.literal('crypto'), v.literal('earnings'), v.literal('regulatory'), v.literal('other')),
+    category: v.union(
+      v.literal('macro'), v.literal('crypto'), v.literal('earnings'),
+      v.literal('regulatory'), v.literal('other'),
+      v.literal('token_unlock'), v.literal('protocol_upgrade'), v.literal('defi_event')
+    ),
     impact: impactType,
+    expectedVolatility: v.optional(v.union(v.literal('low'), v.literal('medium'), v.literal('high'))),
     status: eventStatus,
     coins: v.array(v.string()),
     symbols: v.array(v.string()),
@@ -679,6 +708,8 @@ export default defineSchema({
     actualValue: v.optional(v.string()),
     forecastValue: v.optional(v.string()),
     previousValue: v.optional(v.string()),
+    affectedAssets: v.optional(v.array(v.string())),
+    relatedSignalIds: v.optional(v.array(v.string())),
     lastCheckedAt: v.optional(v.float64()),
     createdAt: v.float64(),
     updatedAt: v.float64(),
@@ -712,12 +743,16 @@ export default defineSchema({
     publishedAt: v.float64(),
     fetchedAt: v.float64(),
     isBreaking: v.optional(v.boolean()),
+    relatedCoins: v.optional(v.array(v.string())),
+    impactScore: v.optional(v.float64()),
+    entityMentions: v.optional(v.string()),
   })
     .index('by_source', ['sourceId'])
     .index('by_published_at', ['publishedAt'])
     .index('by_sentiment', ['sentiment'])
     .index('by_breaking', ['isBreaking'])
-    .index('by_article_id', ['articleId']),
+    .index('by_article_id', ['articleId'])
+    .index('by_coin', ['coins']),
 
   eventSources: defineTable({
     name: v.string(), sourceType, baseUrl: v.optional(v.string()),
@@ -761,12 +796,18 @@ export default defineSchema({
     expiresAt: v.optional(v.float64()),
     tsUtc: v.float64(),
     createdAt: v.float64(),
+    narrativeText: v.optional(v.string()),
+    triggerSummary: v.optional(v.string()),
+    backtestWinRate: v.optional(v.float64()),
+    riskRewardRatio: v.optional(v.float64()),
+    volumeConfirmation: v.optional(v.boolean()),
   })
     .index('by_instrument', ['instrumentId'])
     .index('by_type', ['signalType'])
     .index('by_direction', ['direction'])
     .index('by_generated_by', ['generatedBy'])
-    .index('by_ts', ['tsUtc']),
+    .index('by_ts', ['tsUtc'])
+    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),
 
   aiFeatures: defineTable({
     featureName: v.string(),
@@ -794,6 +835,7 @@ export default defineSchema({
     aiFeatureId: v.string(),
     userId: v.optional(v.string()),
     instrumentId: v.optional(v.string()),
+    featureId: v.optional(v.string()),
     input: v.optional(v.string()),
     output: v.string(),
     model: v.optional(v.string()),
@@ -804,7 +846,8 @@ export default defineSchema({
   })
     .index('by_ai_feature', ['aiFeatureId'])
     .index('by_user', ['userId'])
-    .index('by_instrument', ['instrumentId']),
+    .index('by_instrument', ['instrumentId'])
+    .index('by_feature_instrument', ['featureId', 'instrumentId']),
 
   aiRuns: defineTable({
     aiFeatureId: v.string(),
@@ -863,6 +906,9 @@ export default defineSchema({
     expiresAt: v.optional(v.float64()),
     createdAt: v.float64(),
     updatedAt: v.float64(),
+    templateId: v.optional(v.string()),
+    backtestResultId: v.optional(v.string()),
+    notificationsSent: v.optional(v.float64()),
   })
     .index('by_user', ['userId'])
     .index('by_instrument', ['instrumentId'])
@@ -1072,18 +1118,655 @@ export default defineSchema({
   })
     .index('by_feature_name', ['featureName']),
 
-  subscriptionTiers: defineTable({
-    tierName: v.union(v.literal('Basic'), v.literal('Premium'), v.literal('VIP')),
-    monthlyPrice: v.float64(),
+  // ============================================================
+  // PORTFOLIO & RISK
+  // ============================================================
+  portfolios: defineTable({
+    userId: v.string(),
+    name: v.string(),
     description: v.optional(v.string()),
-    subaseTierId: v.string(),
+    baseCurrency: v.union(
+      v.literal('USD'), v.literal('EUR'), v.literal('KES'), v.literal('BTC')
+    ),
+    isDefault: v.boolean(),
+    visibility: v.union(
+      v.literal('private'), v.literal('followers'), v.literal('public')
+    ),
+    syncMode: v.union(
+      v.literal('manual'), v.literal('exchange_synced'), v.literal('wallet_synced')
+    ),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_visibility', ['visibility']),
+
+  portfolioConnections: defineTable({
+    portfolioId: v.string(),
+    userId: v.string(),
+    connectionType: v.union(
+      v.literal('exchange_api'), v.literal('wallet_address'), v.literal('manual')
+    ),
+    provider: v.optional(v.string()),
+    encryptedCredentials: v.optional(v.string()),
+    walletAddress: v.optional(v.string()),
+    chain: v.optional(v.string()),
+    lastSyncedAt: v.optional(v.float64()),
+    syncStatus: v.union(
+      v.literal('connected'), v.literal('syncing'), v.literal('error'), v.literal('disconnected')
+    ),
+    syncError: v.optional(v.string()),
     createdAt: v.float64(),
   })
-    .index('by_tier_name', ['tierName']),
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_user', ['userId']),
 
-  tierFeatureMap: defineTable({
-    tierId: v.string(), featureId: v.string(),
+  holdings: defineTable({
+    portfolioId: v.string(),
+    instrumentId: v.string(),
+    quantity: v.float64(),
+    averageCostBasis: v.optional(v.float64()),
+    costBasisCurrency: v.optional(v.string()),
+    side: v.optional(v.union(v.literal('long'), v.literal('short'))),
+    lastPriceUsed: v.optional(v.float64()),
+    unrealizedPnl: v.optional(v.float64()),
+    realizedPnl: v.optional(v.float64()),
+    updatedAt: v.float64(),
   })
-    .index('by_tier', ['tierId'])
-    .index('by_feature', ['featureId']),
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_portfolio_instrument', ['portfolioId', 'instrumentId']),
+
+  investmentPortfolioTransactions: defineTable({
+    portfolioId: v.string(),
+    instrumentId: v.string(),
+    txType: v.union(
+      v.literal('buy'), v.literal('sell'), v.literal('transfer_in'),
+      v.literal('transfer_out'), v.literal('staking_reward'),
+      v.literal('airdrop'), v.literal('fee'), v.literal('swap')
+    ),
+    quantity: v.float64(),
+    price: v.optional(v.float64()),
+    fee: v.optional(v.float64()),
+    feeCurrency: v.optional(v.string()),
+    txHash: v.optional(v.string()),
+    exchangeRef: v.optional(v.string()),
+    occurredAt: v.float64(),
+    createdAt: v.float64(),
+  })
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_portfolio_ts', ['portfolioId', 'occurredAt'])
+    .index('by_instrument', ['instrumentId']),
+
+  portfolioSnapshots: defineTable({
+    portfolioId: v.string(),
+    totalValue: v.float64(),
+    totalCostBasis: v.optional(v.float64()),
+    pnlAbsolute: v.optional(v.float64()),
+    pnlPercent: v.optional(v.float64()),
+    breakdownRef: v.optional(v.string()),
+    tsUtc: v.float64(),
+  })
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_portfolio_ts', ['portfolioId', 'tsUtc']),
+
+  riskMetrics: defineTable({
+    portfolioId: v.string(),
+    metricType: v.union(
+      v.literal('var_95'), v.literal('var_99'), v.literal('sharpe'),
+      v.literal('sortino'), v.literal('max_drawdown'), v.literal('beta'),
+      v.literal('volatility_30d'), v.literal('correlation_btc')
+    ),
+    value: v.float64(),
+    windowDays: v.optional(v.float64()),
+    tsUtc: v.float64(),
+  })
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_portfolio_metric', ['portfolioId', 'metricType']),
+
+  taxLots: defineTable({
+    portfolioId: v.string(),
+    instrumentId: v.string(),
+    acquiredAt: v.float64(),
+    quantity: v.float64(),
+    costBasis: v.float64(),
+    disposedAt: v.optional(v.float64()),
+    disposalPrice: v.optional(v.float64()),
+    method: v.union(v.literal('FIFO'), v.literal('LIFO'), v.literal('HIFO')),
+    gainLoss: v.optional(v.float64()),
+    isLongTerm: v.optional(v.boolean()),
+  })
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_portfolio_instrument', ['portfolioId', 'instrumentId']),
+
+  // ============================================================
+  // SCREENER & TECHNICAL ANALYSIS
+  // ============================================================
+  screenerPresets: defineTable({
+    userId: v.optional(v.string()),
+    name: v.string(),
+    filterConfig: v.string(),
+    assetClass: v.optional(v.string()),
+    isPublic: v.boolean(),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_public', ['isPublic']),
+
+  technicalIndicatorValues: defineTable({
+    instrumentId: v.string(),
+    interval: v.string(),
+    indicatorName: v.union(
+      v.literal('rsi'), v.literal('macd'), v.literal('ema_20'), v.literal('ema_50'),
+      v.literal('ema_200'), v.literal('bollinger_upper'), v.literal('bollinger_lower'),
+      v.literal('atr'), v.literal('adx'), v.literal('stoch_rsi')
+    ),
+    value: v.float64(),
+    secondaryValue: v.optional(v.float64()),
+    tsUtc: v.float64(),
+  })
+    .index('by_instrument_interval', ['instrumentId', 'interval'])
+    .index('by_instrument_indicator', ['instrumentId', 'indicatorName']),
+
+  correlationMatrix: defineTable({
+    instrumentIdA: v.string(),
+    instrumentIdB: v.string(),
+    windowDays: v.float64(),
+    coefficient: v.float64(),
+    tsUtc: v.float64(),
+  })
+    .index('by_instrument_a', ['instrumentIdA'])
+    .index('by_pair', ['instrumentIdA', 'instrumentIdB']),
+
+  marketHeatmapCache: defineTable({
+    scope: v.union(v.literal('global'), v.literal('sector'), v.literal('watchlist')),
+    scopeId: v.optional(v.string()),
+    snapshotRef: v.string(),
+    tsUtc: v.float64(),
+  })
+    .index('by_scope', ['scope', 'scopeId'])
+    .index('by_ts', ['tsUtc']),
+
+  backtests: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    strategyConfig: v.string(),
+    instrumentIds: v.array(v.string()),
+    startTsUtc: v.float64(),
+    endTsUtc: v.float64(),
+    status: v.union(
+      v.literal('queued'), v.literal('running'), v.literal('complete'), v.literal('failed')
+    ),
+    resultsSummary: v.optional(v.string()),
+    resultsRef: v.optional(v.string()),
+    createdAt: v.float64(),
+    completedAt: v.optional(v.float64()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_status', ['status']),
+
+  // ============================================================
+  // FUNDAMENTALS & ON-CHAIN
+  // ============================================================
+  assetFundamentals: defineTable({
+    instrumentId: v.string(),
+    marketCap: v.optional(v.float64()),
+    marketCapRank: v.optional(v.float64()),
+    fullyDilutedValuation: v.optional(v.float64()),
+    circulatingSupply: v.optional(v.float64()),
+    totalSupply: v.optional(v.float64()),
+    maxSupply: v.optional(v.float64()),
+    allTimeHigh: v.optional(v.float64()),
+    allTimeHighDate: v.optional(v.float64()),
+    allTimeLow: v.optional(v.float64()),
+    logoUrl: v.optional(v.string()),
+    websiteUrl: v.optional(v.string()),
+    whitepaperUrl: v.optional(v.string()),
+    category: v.optional(v.string()),
+    updatedAt: v.float64(),
+  })
+    .index('by_instrument', ['instrumentId'])
+    .index('by_market_cap_rank', ['marketCapRank'])
+    .index('by_category', ['category']),
+
+  defiMetrics: defineTable({
+    protocolId: v.string(),
+    protocolName: v.string(),
+    chain: v.string(),
+    tvlUsd: v.float64(),
+    volume24h: v.optional(v.float64()),
+    apy: v.optional(v.float64()),
+    category: v.optional(v.string()),
+    tsUtc: v.float64(),
+  })
+    .index('by_protocol', ['protocolId'])
+    .index('by_chain', ['chain'])
+    .index('by_ts', ['tsUtc']),
+
+  securityAudits: defineTable({
+    instrumentId: v.string(),
+    auditorName: v.string(),
+    auditDate: v.float64(),
+    reportUrl: v.optional(v.string()),
+    severity: v.optional(v.union(
+      v.literal('none'), v.literal('low'), v.literal('medium'),
+      v.literal('high'), v.literal('critical')
+    )),
+    findingsSummary: v.optional(v.string()),
+  })
+    .index('by_instrument', ['instrumentId']),
+
+  // ============================================================
+  // SENTIMENT
+  // ============================================================
+  sentimentSnapshots: defineTable({
+    instrumentId: v.string(),
+    source: v.union(
+      v.literal('twitter'), v.literal('reddit'), v.literal('news'),
+      v.literal('telegram'), v.literal('aggregate')
+    ),
+    sentimentScore: v.float64(),
+    volume: v.optional(v.float64()),
+    fearGreedIndex: v.optional(v.float64()),
+    tsUtc: v.float64(),
+  })
+    .index('by_instrument', ['instrumentId'])
+    .index('by_instrument_source', ['instrumentId', 'source'])
+    .index('by_ts', ['tsUtc']),
+
+  // ============================================================
+  // SOCIAL / COMMUNITY
+  // ============================================================
+  comments: defineTable({
+    userId: v.string(),
+    parentType: v.union(
+      v.literal('instrument'), v.literal('news'), v.literal('signal'),
+      v.literal('event'), v.literal('idea')
+    ),
+    parentId: v.string(),
+    body: v.string(),
+    replyToId: v.optional(v.string()),
+    upvotes: v.optional(v.float64()),
+    isDeleted: v.optional(v.boolean()),
+    createdAt: v.float64(),
+  })
+    .index('by_parent', ['parentType', 'parentId'])
+    .index('by_user', ['userId']),
+
+  ideas: defineTable({
+    userId: v.string(),
+    instrumentId: v.string(),
+    title: v.string(),
+    body: v.string(),
+    direction: v.union(v.literal('bullish'), v.literal('bearish'), v.literal('neutral')),
+    chartSnapshotUrl: v.optional(v.string()),
+    targetPrice: v.optional(v.float64()),
+    timeframe: v.optional(v.string()),
+    outcome: v.optional(v.union(
+      v.literal('pending'), v.literal('hit_target'), v.literal('hit_stop'), v.literal('expired')
+    )),
+    upvotes: v.optional(v.float64()),
+    viewCount: v.optional(v.float64()),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_outcome', ['outcome']),
+
+  votes: defineTable({
+    userId: v.string(),
+    targetType: v.union(v.literal('comment'), v.literal('idea'), v.literal('signal')),
+    targetId: v.string(),
+    direction: v.union(v.literal('up'), v.literal('down')),
+    createdAt: v.float64(),
+  })
+    .index('by_target', ['targetType', 'targetId'])
+    .index('by_user_target', ['userId', 'targetType', 'targetId']),
+
+  leaderboardEntries: defineTable({
+    userId: v.string(),
+    period: v.union(v.literal('daily'), v.literal('weekly'), v.literal('monthly'), v.literal('all_time')),
+    category: v.union(v.literal('signals'), v.literal('ideas'), v.literal('portfolio_return')),
+    score: v.float64(),
+    rank: v.optional(v.float64()),
+    winRate: v.optional(v.float64()),
+    tsUtc: v.float64(),
+  })
+    .index('by_period_category', ['period', 'category'])
+    .index('by_user', ['userId']),
+
+  // ============================================================
+  // EDUCATION
+  // ============================================================
+  learningCourses: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    level: v.union(v.literal('beginner'), v.literal('intermediate'), v.literal('advanced')),
+    category: v.optional(v.string()),
+    requiredAccessLevel: v.union(
+      v.literal('free'), v.literal('basic'), v.literal('advanced'),
+      v.literal('premium'), v.literal('full'), v.literal('enterprise')
+    ),
+    estimatedMinutes: v.optional(v.float64()),
+    thumbnailUrl: v.optional(v.string()),
+    isPublished: v.boolean(),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_level', ['level'])
+    .index('by_published', ['isPublished']),
+
+  learningLessons: defineTable({
+    courseId: v.string(),
+    title: v.string(),
+    contentType: v.union(v.literal('video'), v.literal('article'), v.literal('quiz')),
+    contentRef: v.string(),
+    sortOrder: v.float64(),
+    durationSeconds: v.optional(v.float64()),
+  })
+    .index('by_course', ['courseId']),
+
+  userLearningProgress: defineTable({
+    userId: v.string(),
+    courseId: v.string(),
+    lessonId: v.optional(v.string()),
+    status: v.union(v.literal('not_started'), v.literal('in_progress'), v.literal('completed')),
+    progressPercent: v.optional(v.float64()),
+    lastAccessedAt: v.float64(),
+    completedAt: v.optional(v.float64()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_course', ['userId', 'courseId']),
+
+  glossaryTerms: defineTable({
+    term: v.string(),
+    definition: v.string(),
+    category: v.optional(v.string()),
+    relatedTerms: v.optional(v.array(v.string())),
+  })
+    .index('by_term', ['term']),
+
+  // ============================================================
+  // INFRA
+  // ============================================================
+  pushTokens: defineTable({
+    userId: v.string(),
+    platform: v.union(v.literal('ios'), v.literal('android'), v.literal('web')),
+    token: v.string(),
+    isActive: v.boolean(),
+    createdAt: v.float64(),
+    lastUsedAt: v.optional(v.float64()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_token', ['token']),
+
+  webhookEndpointConfigs: defineTable({
+    userId: v.string(),
+    url: v.string(),
+    secret: v.string(),
+    eventTypes: v.array(v.string()),
+    isActive: v.boolean(),
+    lastDeliveryAt: v.optional(v.float64()),
+    lastDeliveryStatus: v.optional(v.union(v.literal('success'), v.literal('failed'))),
+    createdAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_active', ['isActive']),
+
+  systemStatus: defineTable({
+    component: v.string(),
+    status: v.union(v.literal('operational'), v.literal('degraded'), v.literal('outage')),
+    message: v.optional(v.string()),
+    updatedAt: v.float64(),
+  })
+    .index('by_component', ['component']),
+
+  incidentReports: defineTable({
+    title: v.string(),
+    severity: v.union(v.literal('minor'), v.literal('major'), v.literal('critical')),
+    affectedComponents: v.array(v.string()),
+    status: v.union(v.literal('investigating'), v.literal('identified'), v.literal('monitoring'), v.literal('resolved')),
+    startedAt: v.float64(),
+    resolvedAt: v.optional(v.float64()),
+    updatesLog: v.string(),
+  })
+    .index('by_status', ['status'])
+    .index('by_started_at', ['startedAt']),
+
+  searchHistory: defineTable({
+    userId: v.optional(v.string()),
+    query: v.string(),
+    resultType: v.optional(v.string()),
+    createdAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_created_at', ['createdAt']),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN 10: WORLD-CLASS FEATURES — Whale Trades, Heatmap, Liquidations
+  // ═══════════════════════════════════════════════════════════════════════════
+  whaleTrades: defineTable({
+    instrumentId: v.string(),
+    sourceId: v.string(),
+    side: v.union(v.literal('buy'), v.literal('sell')),
+    price: v.float64(),
+    quantity: v.float64(),
+    notionalValue: v.float64(),
+    thresholdUsd: v.float64(),
+    tradeId: v.optional(v.string()),
+    tsUtc: v.float64(),
+    receivedAt: v.float64(),
+  })
+    .index('by_instrument', ['instrumentId'])
+    .index('by_ts', ['tsUtc'])
+    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),
+
+  liquidationClusters: defineTable({
+    instrumentId: v.string(),
+    priceBucket: v.float64(),
+    bucketSizeUsd: v.float64(),
+    longLiquidationsUsd: v.float64(),
+    shortLiquidationsUsd: v.float64(),
+    totalLiquidationsUsd: v.float64(),
+    tradeCount: v.float64(),
+    tsUtc: v.float64(),
+    windowSeconds: v.float64(),
+  })
+    .index('by_instrument', ['instrumentId'])
+    .index('by_instrument_bucket', ['instrumentId', 'priceBucket'])
+    .index('by_ts', ['tsUtc']),
+
+  heatmapSnapshots: defineTable({
+    snapshotTs: v.float64(),
+    intervalSeconds: v.float64(),
+    coins: v.string(),
+    topGainers: v.string(),
+    topLosers: v.string(),
+    totalMarketCapUsd: v.float64(),
+    totalVolumeUsd: v.float64(),
+    btcDominance: v.float64(),
+  })
+    .index('by_ts', ['snapshotTs']),
+
+  screenerFilters: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    filterConfig: v.string(),
+    isPublic: v.optional(v.boolean()),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId']),
+
+  screenerResults: defineTable({
+    filterId: v.optional(v.string()),
+    filterHash: v.string(),
+    results: v.string(),
+    computedAt: v.float64(),
+    ttlSeconds: v.float64(),
+  })
+    .index('by_filter_hash', ['filterHash'])
+    .index('by_computed_at', ['computedAt']),
+
+  socialSentiment: defineTable({
+    assetId: v.string(),
+    source: v.union(
+      v.literal('twitter'), v.literal('reddit'), v.literal('fear_greed'),
+      v.literal('lunarcrush'), v.literal('santiment')
+    ),
+    sentimentScore: v.float64(),
+    sentimentLabel: v.union(
+      v.literal('extreme_fear'), v.literal('fear'), v.literal('neutral'),
+      v.literal('greed'), v.literal('extreme_greed')
+    ),
+    mentionVolume: v.optional(v.float64()),
+    socialDominance: v.optional(v.float64()),
+    galaxyScore: v.optional(v.float64()),
+    tsUtc: v.float64(),
+  })
+    .index('by_asset', ['assetId'])
+    .index('by_asset_source', ['assetId', 'source'])
+    .index('by_ts', ['tsUtc']),
+
+  portfolioHoldings: defineTable({
+    userId: v.string(),
+    portfolioId: v.string(),
+    instrumentId: v.string(),
+    quantity: v.float64(),
+    averageEntryPrice: v.float64(),
+    currency: v.string(),
+    addedAt: v.float64(),
+    updatedAt: v.float64(),
+    notes: v.optional(v.string()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_portfolio', ['portfolioId'])
+    .index('by_user_instrument', ['userId', 'instrumentId']),
+
+  paperTrades: defineTable({
+    userId: v.string(),
+    paperPortfolioId: v.string(),
+    instrumentId: v.string(),
+    side: v.union(v.literal('buy'), v.literal('sell')),
+    quantity: v.float64(),
+    entryPrice: v.float64(),
+    exitPrice: v.optional(v.float64()),
+    status: v.union(v.literal('open'), v.literal('closed'), v.literal('cancelled')),
+    pnlUsd: v.optional(v.float64()),
+    pnlPct: v.optional(v.float64()),
+    signalId: v.optional(v.string()),
+    openedAt: v.float64(),
+    closedAt: v.optional(v.float64()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_portfolio', ['paperPortfolioId'])
+    .index('by_signal', ['signalId']),
+
+  paperPortfolios: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    startingCapitalUsd: v.float64(),
+    currentCapitalUsd: v.float64(),
+    currency: v.string(),
+    isActive: v.boolean(),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId']),
+
+  marketRegimes: defineTable({
+    instrumentId: v.optional(v.string()),
+    scope: v.union(v.literal('global'), v.literal('instrument'), v.literal('sector')),
+    regime: v.union(
+      v.literal('accumulation'), v.literal('markup'), v.literal('distribution'),
+      v.literal('markdown'), v.literal('consolidation')
+    ),
+    confidenceScore: v.float64(),
+    supportingMetrics: v.string(),
+    aiNarrative: v.optional(v.string()),
+    tsUtc: v.float64(),
+    expiresAt: v.float64(),
+  })
+    .index('by_instrument', ['instrumentId'])
+    .index('by_scope', ['scope'])
+    .index('by_ts', ['tsUtc']),
+
+  defiProtocols: defineTable({
+    protocolId: v.string(),
+    name: v.string(),
+    chain: v.string(),
+    category: v.union(
+      v.literal('dex'), v.literal('lending'), v.literal('derivatives'),
+      v.literal('yield'), v.literal('bridge'), v.literal('other')
+    ),
+    tvlUsd: v.float64(),
+    tvlChange24h: v.optional(v.float64()),
+    volume24h: v.optional(v.float64()),
+    fees24h: v.optional(v.float64()),
+    logoUrl: v.optional(v.string()),
+    updatedAt: v.float64(),
+  })
+    .index('by_chain', ['chain'])
+    .index('by_category', ['category'])
+    .index('by_tvl', ['tvlUsd']),
+
+  learningCards: defineTable({
+    cardId: v.string(),
+    title: v.string(),
+    content: v.string(),
+    category: v.union(
+      v.literal('basics'), v.literal('derivatives'), v.literal('onchain'),
+      v.literal('macro'), v.literal('risk'), v.literal('strategy')
+    ),
+    triggerContext: v.string(),
+    difficulty: difficultyLevel,
+    estimatedReadSeconds: v.float64(),
+    isActive: v.boolean(),
+  })
+    .index('by_category', ['category'])
+    .index('by_difficulty', ['difficulty']),
+
+  learningCardProgress: defineTable({
+    userId: v.string(),
+    cardId: v.string(),
+    status: v.union(v.literal('seen'), v.literal('completed'), v.literal('dismissed')),
+    seenAt: v.float64(),
+    completedAt: v.optional(v.float64()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_card', ['userId', 'cardId']),
+
+  alertTemplates: defineTable({
+    templateId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    alertType: v.string(),
+    conditionConfig: v.string(),
+    requiredAccessLevel: v.string(),
+    usageCount: v.float64(),
+    isActive: v.boolean(),
+  })
+    .index('by_alert_type', ['alertType'])
+    .index('by_usage', ['usageCount']),
+
+  priceAggregates: defineTable({
+    instrumentId: v.string(),
+    sourceId: v.string(),
+    open: v.float64(),
+    high: v.float64(),
+    low: v.float64(),
+    close: v.float64(),
+    volume: v.float64(),
+    vwap: v.optional(v.float64()),
+    tradeCount: v.float64(),
+    changePercent1m: v.optional(v.float64()),
+    changePercent5m: v.optional(v.float64()),
+    changePercent1h: v.optional(v.float64()),
+    changePercent24h: v.optional(v.float64()),
+    tsUtc: v.float64(),
+  })
+    .index('by_instrument', ['instrumentId'])
+    .index('by_instrument_ts', ['instrumentId', 'tsUtc']),
 });

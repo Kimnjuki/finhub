@@ -1,13 +1,18 @@
 import { DataSource, MarketDataPoint, MarketIndex, SectorPerformance, NewsItem } from '../types';
+import { proxyFetch } from '../httpClient';
 
-const BASE_URL = 'https://query1.finance.yahoo.com';
+const SERVICE = 'yahoo';
 
 export const yahooSource = {
   sourceId: 'yahoo' as DataSource,
 
   async getQuote(symbol: string): Promise<any> {
-    const url = `${BASE_URL}/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Quote HTTP ${res.status} for ${symbol}`);
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
     const data = await res.json();
     const result = data.chart?.result?.[0];
     if (!result) throw new Error(`Yahoo: No data for ${symbol}`);
@@ -32,8 +37,12 @@ export const yahooSource = {
 
   async getMarketIndices(): Promise<MarketIndex[]> {
     const symbols = ['^GSPC', '^IXIC', '^DJI', '^RUT', '^VIX', '^FTSE', '^N225', '^HSI'];
-    const url = `${BASE_URL}/v7/finance/quote?symbols=${symbols.join(',')}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.join(',')}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Market indices HTTP ${res.status}`);
+      return [];
+    }
     const data = await res.json();
     
     return (data.quoteResponse?.result || []).map((r: any) => ({
@@ -52,8 +61,12 @@ export const yahooSource = {
     interval: string = '1d',
     range: string = '1mo'
   ): Promise<{ timestamps: number[]; open: number[]; high: number[]; low: number[]; close: number[]; volume: number[] }> {
-    const url = `${BASE_URL}/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Chart data HTTP ${res.status} for ${symbol}`);
+      return { timestamps: [], open: [], high: [], low: [], close: [], volume: [] };
+    }
     const data = await res.json();
     const result = data.chart?.result?.[0];
     
@@ -73,8 +86,12 @@ export const yahooSource = {
   },
 
   async getTrendingSymbols(region: string = 'US'): Promise<{ symbol: string; name: string; price: number; changePercent: number }[]> {
-    const url = `${BASE_URL}/v1/finance/trending/${region}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v1/finance/trending/${region}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Trending HTTP ${res.status}`);
+      return [];
+    }
     const data = await res.json();
     
     return (data.finance?.result?.[0]?.quotes || []).map((r: any) => ({
@@ -86,10 +103,6 @@ export const yahooSource = {
   },
 
   async getSectorPerformance(): Promise<SectorPerformance[]> {
-    const url = `${BASE_URL}/v6/finance/quote/marketSummary`;
-    const res = await fetch(url);
-    const data = await res.json();
-    
     const sectors = [
       { symbol: 'XLF', name: 'Financial' },
       { symbol: 'XLK', name: 'Technology' },
@@ -104,11 +117,15 @@ export const yahooSource = {
       { symbol: 'XLC', name: 'Communication' },
     ];
     
-    const quotesUrl = `${BASE_URL}/v7/finance/quote?symbols=${sectors.map(s => s.symbol).join(',')}`;
-    const quotesRes = await fetch(quotesUrl);
-    const quotesData = await quotesRes.json();
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${sectors.map(s => s.symbol).join(',')}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Sector performance HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
     
-    return (quotesData.quoteResponse?.result || []).map((r: any) => {
+    return (data.quoteResponse?.result || []).map((r: any) => {
       const sector = sectors.find(s => s.symbol === r.symbol);
       return {
         sector: sector?.name || r.shortName || r.symbol,
@@ -121,28 +138,44 @@ export const yahooSource = {
   },
 
   async getKeyStatistics(symbol: string): Promise<any> {
-    const url = `${BASE_URL}/v10/finance/quoteSummary/${symbol}?modules=defaultKeyStatistics,financialData,summaryDetail,price`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=defaultKeyStatistics,financialData,summaryDetail,price`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Key statistics HTTP ${res.status} for ${symbol}`);
+      return null;
+    }
     const data = await res.json();
     return data.quoteSummary?.result?.[0];
   },
 
   async getRecommendations(symbol: string): Promise<any[]> {
-    const url = `${BASE_URL}/v6/finance/recommendationsbysymbol/${symbol}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v6/finance/recommendationsbysymbol/${symbol}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Recommendations HTTP ${res.status} for ${symbol}`);
+      return [];
+    }
     const data = await res.json();
     return data.finance?.result?.[0]?.recommendedSymbols || [];
   },
 
   async getInsights(symbol: string): Promise<any> {
-    const url = `${BASE_URL}/ws/insights/v2/finance/insights?symbol=${symbol}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/ws/insights/v2/finance/insights?symbol=${symbol}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Insights HTTP ${res.status} for ${symbol}`);
+      return null;
+    }
     return res.json();
   },
 
   async getNews(symbol: string, count: number = 10): Promise<NewsItem[]> {
-    const url = `${BASE_URL}/v1/finance/search?q=${symbol}&newsCount=${count}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${symbol}&newsCount=${count}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] News HTTP ${res.status} for ${symbol}`);
+      return [];
+    }
     const data = await res.json();
     
     return (data.news || []).map((n: any) => ({
@@ -160,8 +193,12 @@ export const yahooSource = {
   },
 
   async searchSymbols(query: string): Promise<{ symbol: string; name: string; type: string; exchange: string }[]> {
-    const url = `${BASE_URL}/v1/finance/search?q=${query}`;
-    const res = await fetch(url);
+    const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${query}`;
+    const res = await proxyFetch(SERVICE, url);
+    if (!res.ok) {
+      console.warn(`[Yahoo] Search HTTP ${res.status}`);
+      return [];
+    }
     const data = await res.json();
     
     return (data.quotes || []).map((q: any) => ({

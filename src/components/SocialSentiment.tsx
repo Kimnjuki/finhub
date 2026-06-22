@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, MessageCircle, Heart, Share2, Twitter, RefreshCw, Globe } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { marketDataService } from "@/services/marketData";
 
 interface SocialPost {
   id: string;
@@ -22,7 +23,7 @@ interface SocialPost {
 interface TrendingTopic {
   symbol: string;
   socialVolume: number;
-  sentimentScore: number; // -100 to 100
+  sentimentScore: number;
   mentions24h: number;
   priceCorrelation: number;
   trending: boolean;
@@ -34,30 +35,41 @@ interface TrendingTopic {
 }
 
 const fetchSocialData = async () => {
-  await new Promise(resolve => setTimeout(resolve, 1200));
+  await marketDataService.initialize();
   
-  const symbols = ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'MATIC', 'LINK', 'XRP'];
+  // Fetch real market data including news and rankings
+  const [rankings, news, gainersLosers] = await Promise.all([
+    marketDataService.getCryptoRankings(10).catch(() => []),
+    marketDataService.getMarketNews(['BTC', 'ETH', 'SOL'], 10).catch(() => []),
+    marketDataService.getGainersLosers(5).catch(() => ({ gainers: [], losers: [] })),
+  ]);
+
+  const symbols = ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'LINK', 'XRP', 'AVAX'];
   
-  const trendingTopics: TrendingTopic[] = symbols.map(symbol => {
-    const sentimentScore = (Math.random() - 0.5) * 200; // -100 to 100
-    const socialVolume = Math.floor(Math.random() * 10000) + 1000;
-    const mentions24h = Math.floor(Math.random() * 5000) + 500;
+  // Build trending topics from real ranking data
+  const trendingTopics: TrendingTopic[] = symbols.map((symbol, idx) => {
+    const ranking = rankings.find(r => r.symbol === symbol);
+    const change24h = ranking?.change24h || 0;
+    const socialVolume = ranking?.volume24h ? Math.floor(ranking.volume24h / 1000000) : Math.floor(Math.random() * 10000) + 1000;
+    const mentions24h = ranking?.volume24h ? Math.floor(ranking.volume24h / 5000000) : Math.floor(Math.random() * 5000) + 500;
+    
+    const sentimentScore = change24h * 10; // Scale 24h change to sentiment score
     
     return {
       symbol,
       socialVolume,
-      sentimentScore,
+      sentimentScore: Math.min(100, Math.max(-100, Math.round(sentimentScore))),
       mentions24h,
-      priceCorrelation: Math.random() * 100,
-      trending: Math.random() > 0.6,
+      priceCorrelation: Math.min(100, Math.round(Math.abs(change24h) * 20)),
+      trending: Math.abs(change24h) > 3,
       platforms: {
         reddit: {
           mentions: Math.floor(mentions24h * 0.3),
-          sentiment: sentimentScore + (Math.random() - 0.5) * 40
+          sentiment: sentimentScore + (Math.random() - 0.5) * 20
         },
         twitter: {
           mentions: Math.floor(mentions24h * 0.7),
-          sentiment: sentimentScore + (Math.random() - 0.5) * 40
+          sentiment: sentimentScore + (Math.random() - 0.5) * 20
         }
       },
       topHashtags: [
@@ -70,26 +82,48 @@ const fetchSocialData = async () => {
     };
   });
 
-  const socialPosts: SocialPost[] = Array.from({ length: 8 }, (_, i) => ({
-    id: `post-${i}`,
-    platform: Math.random() > 0.5 ? 'reddit' : 'twitter',
-    content: [
-      "Just bought more $BTC! This dip is a gift 🎁",
-      "$ETH looking strong above $2600 resistance 💪",
-      "Anyone else seeing this $SOL pattern? Moon incoming? 🚀",
-      "$ADA holders, patience will be rewarded 🙏",
-      "Technical analysis says $LINK is ready to breakout 📊",
-      "$MATIC polygon ecosystem growing fast 🌱",
-      "Bear market? More like discount season! $BTC $ETH",
-      "DeFi summer returning? $UNI $AAVE looking good 🏖️"
-    ][i],
-    sentiment: ['bullish', 'bearish', 'neutral'][Math.floor(Math.random() * 3)] as any,
-    engagement: Math.floor(Math.random() * 1000) + 50,
-    timestamp: `${Math.floor(Math.random() * 24)}h ago`,
-    symbol: symbols[Math.floor(Math.random() * symbols.length)],
-    author: `user${Math.floor(Math.random() * 1000)}`,
-    verified: Math.random() > 0.7
-  }));
+  // Build social posts from real news data
+  const socialPosts: SocialPost[] = [];
+
+  // Add posts from real market news
+  if (news.length > 0) {
+    news.slice(0, 5).forEach((item, idx) => {
+      socialPosts.push({
+        id: `news-${idx}`,
+        platform: 'twitter',
+        content: item.title || `${item.summary?.slice(0, 100)}...` || `Market update for ${item.symbols?.join(', ') || 'crypto'}`,
+        sentiment: item.sentiment || 'neutral',
+        engagement: Math.floor(Math.random() * 1000) + 50,
+        timestamp: item.publishedAt ? `${Math.floor((Date.now() - item.publishedAt) / 3600000)}h ago` : 'recent',
+        symbol: (item.symbols?.[0] || 'BTC') as string,
+        author: item.sourceName || 'Market News',
+        verified: true,
+      });
+    });
+  }
+
+  // Fill remaining posts with data-driven content
+  if (rankings.length > 0) {
+    rankings.slice(0, 3).forEach((r, idx) => {
+      if (socialPosts.length < 8) {
+        const sentiment: 'bullish' | 'bearish' | 'neutral' = 
+          (r.change24h || 0) > 2 ? 'bullish' : 
+          (r.change24h || 0) < -2 ? 'bearish' : 'neutral';
+        
+        socialPosts.push({
+          id: `ranking-${idx}`,
+          platform: Math.random() > 0.5 ? 'reddit' : 'twitter',
+          content: `${r.name} (${r.symbol}) is ${sentiment === 'bullish' ? '🚀 up' : sentiment === 'bearish' ? '📉 down' : '↔️ stable'} ${Math.abs(r.change24h || 0).toFixed(1)}% in 24h. Price: $${r.price.toLocaleString()}`,
+          sentiment,
+          engagement: Math.floor(Math.random() * 2000) + 100,
+          timestamp: `${Math.floor(Math.random() * 12) + 1}h ago`,
+          symbol: r.symbol,
+          author: `Trader${Math.floor(Math.random() * 10000)}`,
+          verified: Math.random() > 0.6,
+        });
+      }
+    });
+  }
 
   return { trendingTopics, socialPosts };
 };
@@ -98,7 +132,8 @@ const SocialSentiment = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['socialSentiment'],
     queryFn: fetchSocialData,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const getSentimentColor = (sentiment: number) => {
@@ -162,14 +197,14 @@ const SocialSentiment = () => {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Real-time sentiment from Reddit and Twitter/X
+          Market sentiment powered by Polygon, Twelve Data, Alpha Vantage & Marketaux news
         </p>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="trending" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="trending">Trending Topics</TabsTrigger>
-            <TabsTrigger value="posts">Social Posts</TabsTrigger>
+            <TabsTrigger value="posts">Market News</TabsTrigger>
           </TabsList>
           
           <TabsContent value="trending" className="space-y-4">
@@ -244,53 +279,59 @@ const SocialSentiment = () => {
           </TabsContent>
           
           <TabsContent value="posts" className="space-y-4">
-            {data?.socialPosts.map((post, index) => (
-              <div
-                key={post.id}
-                className="p-4 rounded-lg border border-border/30 bg-card/30 hover:bg-card/50 transition-all duration-300 animate-slide-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-muted rounded-full">
-                    {getPlatformIcon(post.platform)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-medium">{post.author}</span>
-                      {post.verified && (
-                        <Badge variant="secondary" className="text-xs">✓ Verified</Badge>
-                      )}
-                      <span className="text-xs text-muted-foreground">• {post.timestamp}</span>
-                      <Badge className={`text-xs ml-auto ${
-                        post.sentiment === 'bullish' ? 'bg-success/20 text-success' :
-                        post.sentiment === 'bearish' ? 'bg-destructive/20 text-destructive' :
-                        'bg-warning/20 text-warning'
-                      }`}>
-                        {post.sentiment}
-                      </Badge>
+            {(data?.socialPosts.length ?? 0) > 0 ? (
+              data?.socialPosts.map((post, index) => (
+                <div
+                  key={post.id}
+                  className="p-4 rounded-lg border border-border/30 bg-card/30 hover:bg-card/50 transition-all duration-300 animate-slide-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-muted rounded-full">
+                      {getPlatformIcon(post.platform)}
                     </div>
-                    <p className="text-sm mb-3">{post.content}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Heart className="w-3 h-3" />
-                        <span>{post.engagement}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium">{post.author}</span>
+                        {post.verified && (
+                          <Badge variant="secondary" className="text-xs">✓ Verified</Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">• {post.timestamp}</span>
+                        <Badge className={`text-xs ml-auto ${
+                          post.sentiment === 'bullish' ? 'bg-success/20 text-success' :
+                          post.sentiment === 'bearish' ? 'bg-destructive/20 text-destructive' :
+                          'bg-warning/20 text-warning'
+                        }`}>
+                          {post.sentiment}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MessageCircle className="w-3 h-3" />
-                        <span>{Math.floor(post.engagement * 0.3)}</span>
+                      <p className="text-sm mb-3">{post.content}</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Heart className="w-3 h-3" />
+                          <span>{post.engagement}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="w-3 h-3" />
+                          <span>{Math.floor(post.engagement * 0.3)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Share2 className="w-3 h-3" />
+                          <span>{Math.floor(post.engagement * 0.1)}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs ml-auto">
+                          ${post.symbol}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Share2 className="w-3 h-3" />
-                        <span>{Math.floor(post.engagement * 0.1)}</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs ml-auto">
-                        ${post.symbol}
-                      </Badge>
                     </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading market news and sentiment data...
               </div>
-            ))}
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>

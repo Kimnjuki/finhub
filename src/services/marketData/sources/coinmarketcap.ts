@@ -1,7 +1,9 @@
 import { DataSource, CryptoRanking, GlobalMarketMetrics } from '../types';
+import { proxyFetch, buildProxyUrl } from '../httpClient';
 
 const API_KEY = import.meta.env.VITE_COINMARKETCAP_API_KEY || '';
 const BASE_URL = 'https://pro-api.coinmarketcap.com';
+const SERVICE = 'coinmarketcap';
 
 const headers = {
   'X-CMC_PRO_API_KEY': API_KEY,
@@ -21,7 +23,7 @@ export const coinmarketcapSource = {
     }
     
     const url = `${BASE_URL}/v1/cryptocurrency/listings/latest?limit=${limit}&convert=${convert}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     if (data.status?.error_code !== 0) throw new Error(`CMC API error: ${data.status?.error_message}`);
@@ -48,7 +50,7 @@ export const coinmarketcapSource = {
     if (!API_KEY) return [];
     
     const url = `${BASE_URL}/v2/cryptocurrency/quotes/latest?symbol=${symbols.join(',')}&convert=${convert}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     if (data.status?.error_code !== 0) throw new Error(`CMC API error: ${data.status?.error_message}`);
@@ -81,7 +83,7 @@ export const coinmarketcapSource = {
     if (!API_KEY) return getMockGlobalMetrics();
     
     const url = `${BASE_URL}/v1/global-metrics/quotes/latest?convert=${convert}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     if (data.status?.error_code !== 0) throw new Error(`CMC API error: ${data.status?.error_message}`);
@@ -106,7 +108,7 @@ export const coinmarketcapSource = {
     if (!API_KEY) return getMockRankings(limit).slice(0, limit);
     
     const url = `${BASE_URL}/v1/cryptocurrency/trending/latest?limit=${limit}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     return (data.data || []).map((c: any) => ({
@@ -128,7 +130,7 @@ export const coinmarketcapSource = {
     if (!API_KEY) return { gainers: [], losers: [] };
     
     const url = `${BASE_URL}/v1/cryptocurrency/trending/gainers-losers?limit=${limit}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     const mapItem = (c: any): CryptoRanking => ({
@@ -155,7 +157,7 @@ export const coinmarketcapSource = {
     if (!API_KEY) return [];
     
     const url = `${BASE_URL}/v1/exchange/listings/latest?limit=${limit}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     return (data.data || []).map((e: any) => ({
@@ -174,7 +176,7 @@ export const coinmarketcapSource = {
     if (!API_KEY) return null;
     
     const url = `${BASE_URL}/v2/cryptocurrency/info?symbol=${symbol}`;
-    const res = await fetch(url, { headers });
+    const res = await proxyFetch(SERVICE, url, { headers });
     const data = await res.json();
     
     const entries = data.data?.[symbol];

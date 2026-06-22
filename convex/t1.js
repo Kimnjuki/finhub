@@ -1,0 +1,1 @@
+var L=[];var f=require("fs");var w=function(n){f.writeFileSync("convex/"+n,L.join("\n"))}

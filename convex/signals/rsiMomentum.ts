@@ -1,7 +1,7 @@
 // Signal for RSI momentum detection
-import { defineAction, action, defineQuery, query } from "convex/server";
+import { action } from "convex/server";
 
-export const checkRsiMomentum = defineAction({
+export const checkRsiMomentum = action({
   async handler(ctx: any, args: any) {
     // TODO: Implement RSI momentum detection logic
     return { momentum: 0 };

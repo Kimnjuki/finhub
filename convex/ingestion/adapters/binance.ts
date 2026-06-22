@@ -1,5 +1,5 @@
 import { ExchangeAdapter, NormalizedMessage, NormalizedTrade } from "../types";
-import { ingestTick, ingestOhlcv, ingestOrderBook, ingestStreamMessage } from "../ingestion/bootstrap";
+import { ingestTick, ingestOhlcv, ingestOrderBook, ingestStreamMessage } from "../bootstrap";
 
 export class BinanceAdapter implements ExchangeAdapter {
   sourceId = "binance" as const;

@@ -1,7 +1,7 @@
 // Signal for RSI bullish condition
-import { defineAction, action, defineQuery, query } from "convex/server";
+import { action } from "convex/server";
 
-export const checkRsiBullish = defineAction({
+export const checkRsiBullish = action({
   async handler(ctx: any, args: any) {
     // TODO: Implement RSI bullish detection logic
     return { bullish: false };

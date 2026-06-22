@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MarketTabs } from '@/components/markets/MarketTabs';
 import SEOHead from '@/components/SEOHead';
 import { InstrumentTicker } from '@/components/market/InstrumentTicker';
@@ -10,11 +10,28 @@ import { AssetClass, DataSource, CryptoRanking, GlobalMarketMetrics, MarketIndex
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, BarChart3, Globe, Newspaper, ArrowUpDown, RefreshCw, Activity } from 'lucide-react';
+import { 
+  TrendingUp, TrendingDown, BarChart3, Globe, Newspaper, ArrowUpDown, 
+  RefreshCw, Activity, Layout, CandlestickChart, Signal, MessageCircle,
+  DollarSign, Flame, PieChart, LineChart as LineChartIcon, Grid
+} from 'lucide-react';
+import { TradingViewCandlestick } from '@/components/charts/TradingViewCandlestick';
+import { AdvancedDepthChart } from '@/components/charts/AdvancedDepthChart';
+import { MultiChartLayout } from '@/components/charts/MultiChartLayout';
+import TechnicalSignals from '@/components/TechnicalSignals';
+import SocialSentiment from '@/components/SocialSentiment';
+import CurrencyHeatMap from '@/components/CurrencyHeatMap';
+import MarketAnalytics from '@/components/MarketAnalytics';
+import ForexList from '@/components/ForexList';
+import MarketStats from '@/components/MarketStats';
+import CryptoList from '@/components/CryptoList';
+import CurrencySelector from '@/components/market/CurrencySelector';
+import PriceAlertBadge from '@/components/market/PriceAlertBadge';
+import OrderBookDepth from '@/components/market/OrderBookDepth';
 
 const MarketsContent: React.FC = () => {
   const { globalMetrics, marketIndices, topRankings, marketNews, refreshAll } = useMultiSourceMarket();
-  const [symbols, setSymbols] = useState<string[]>(['BTC-USD', 'ETH-USD', 'SOL-USD']);
+  const [symbols, setSymbols] = useState<string[]>(['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD']);
   const [selectedSources, setSelectedSources] = useState<DataSource[]>(['coinbase', 'kraken', 'polygon', 'yahoo']);
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -37,20 +54,24 @@ const MarketsContent: React.FC = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Markets</h1>
             <p className="text-muted-foreground mt-1">
-              Multi-source market data from {selectedSources.length} providers
+              Real-time data from {selectedSources.length} providers • Multi-source aggregation
             </p>
           </div>
-          <button 
-            onClick={refreshAll} 
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-muted/20 transition-colors text-sm"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh All
-          </button>
+          <div className="flex items-center gap-3">
+            <PriceAlertBadge />
+            <CurrencySelector />
+            <button 
+              onClick={refreshAll} 
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-muted/20 transition-colors text-sm"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Global Market Metrics */}
@@ -86,18 +107,22 @@ const MarketsContent: React.FC = () => {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-4 lg:grid-cols-6 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-10 w-full max-w-7xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="crypto">Crypto</TabsTrigger>
+            <TabsTrigger value="forex">Forex</TabsTrigger>
+            <TabsTrigger value="signals">Signals</TabsTrigger>
+            <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
+            <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+            <TabsTrigger value="charts">Charts</TabsTrigger>
+            <TabsTrigger value="depth">Depth</TabsTrigger>
+            <TabsTrigger value="multi">Multi</TabsTrigger>
             <TabsTrigger value="wallet">Watchlist</TabsTrigger>
-            <TabsTrigger value="sources">Sources</TabsTrigger>
-            <TabsTrigger value="news">News</TabsTrigger>
-            <TabsTrigger value="rankings" className="hidden lg:block">Rankings</TabsTrigger>
-            <TabsTrigger value="trending" className="hidden lg:block">Trending</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <Card>
                   <CardHeader>
@@ -106,7 +131,7 @@ const MarketsContent: React.FC = () => {
                       Multi-Source Price Feed
                     </CardTitle>
                     <CardDescription>
-                      Aggregated prices from {selectedSources.length} sources
+                      Aggregated prices from {selectedSources.length} sources using median + VWAP
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -118,7 +143,7 @@ const MarketsContent: React.FC = () => {
                   </CardContent>
                 </Card>
               </div>
-              <div>
+              <div className="space-y-4">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Data Sources</CardTitle>
@@ -131,6 +156,14 @@ const MarketsContent: React.FC = () => {
                     />
                   </CardContent>
                 </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Market Stats</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MarketStats />
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -141,7 +174,7 @@ const MarketsContent: React.FC = () => {
                   <ArrowUpDown className="h-5 w-5" />
                   Top Cryptocurrencies
                 </CardTitle>
-                <CardDescription>Rankings from CoinMarketCap</CardDescription>
+                <CardDescription>Real-time rankings from CoinMarketCap</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -184,7 +217,86 @@ const MarketsContent: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Wallet Tab */}
+          {/* Crypto Tab */}
+          <TabsContent value="crypto" className="space-y-6">
+            <CryptoList />
+          </TabsContent>
+
+          {/* Forex Tab */}
+          <TabsContent value="forex" className="space-y-6">
+            <ForexList />
+          </TabsContent>
+
+          {/* Signals Tab */}
+          <TabsContent value="signals" className="space-y-6">
+            <TechnicalSignals />
+          </TabsContent>
+
+          {/* Sentiment Tab */}
+          <TabsContent value="sentiment" className="space-y-6">
+            <SocialSentiment />
+          </TabsContent>
+
+          {/* Heatmap Tab */}
+          <TabsContent value="heatmap" className="space-y-6">
+            <CurrencyHeatMap />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <MarketAnalytics />
+          </TabsContent>
+
+          {/* Charts Tab - Production-Grade TradingView Lightweight Charts */}
+          <TabsContent value="charts" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CandlestickChart className="h-5 w-5" />
+                  Advanced Chart
+                </CardTitle>
+                <CardDescription>
+                  Real-time candlestick chart with multiple timeframes from Binance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TradingViewCandlestick
+                  symbol="BTCUSDT"
+                  interval="1h"
+                  height={500}
+                  showVolume={true}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Depth Tab - Real-time Order Book Visualization */}
+          <TabsContent value="depth" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <OrderBookDepth symbol="BTCUSDT" />
+              <OrderBookDepth symbol="ETHUSDT" />
+            </div>
+          </TabsContent>
+
+          {/* Multi-Chart Tab */}
+          <TabsContent value="multi" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layout className="h-5 w-5" />
+                  Multi-Chart Layout
+                </CardTitle>
+                <CardDescription>
+                  Split-screen charting with multiple pairs, timeframes, and resizable panels
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MultiChartLayout />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Wallet/Watchlist Tab */}
           <TabsContent value="wallet">
             <Card>
               <CardHeader>

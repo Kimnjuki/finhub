@@ -2,32 +2,158 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, TrendingDown, Activity, AlertCircle, Share, Download, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { marketDataService } from "@/services/marketData";
 
-const fetchMarketAnalytics = async () => {
-  // Mock data - in production, use real market analytics API
+interface CurrencyStrength {
+  currency: string;
+  change: number;
+  reason: string;
+}
+
+interface VolatilityItem {
+  currency: string;
+  level: string;
+  value: number;
+}
+
+interface SessionInfo {
+  current: string;
+  status: string;
+  nextOpen: string;
+  timeToNext: string;
+}
+
+interface MarketAnalyticsData {
+  strongest: CurrencyStrength[];
+  weakest: CurrencyStrength[];
+  volatility: VolatilityItem[];
+  sessions: SessionInfo;
+}
+
+const fetchMarketAnalytics = async (): Promise<MarketAnalyticsData> => {
+  // Initialize the market data service
+  await marketDataService.initialize();
+  
+  // Fetch real data from multiple sources
+  const [indices, rankings, metrics] = await Promise.all([
+    marketDataService.getMarketIndices().catch(() => []),
+    marketDataService.getCryptoRankings(10).catch(() => []),
+    marketDataService.getGlobalMetrics().catch(() => null),
+  ]);
+
+  const volatilityItems: VolatilityItem[] = [];
+  
+  // Add crypto volatility data from real rankings
+  if (rankings.length > 0) {
+    rankings.slice(0, 4).forEach(r => {
+      const absChange = Math.abs(r.change24h || 0);
+      let level: string;
+      if (absChange > 5) level = 'High';
+      else if (absChange > 2) level = 'Medium';
+      else level = 'Low';
+      volatilityItems.push({
+        currency: r.symbol,
+        level,
+        value: absChange,
+      });
+    });
+  }
+
+  // Determine strongest/weakest from real data
+  const strongest: CurrencyStrength[] = [];
+  const weakest: CurrencyStrength[] = [];
+
+  // Use index performance data
+  if (indices.length > 0) {
+    const sortedIndices = [...indices].sort((a, b) => b.changePercent - a.changePercent);
+    
+    const indexNames: Record<string, string> = {
+      '^GSPC': 'S&P 500',
+      '^IXIC': 'NASDAQ',
+      '^DJI': 'Dow Jones',
+      '^VIX': 'VIX',
+      '^FTSE': 'FTSE 100',
+      '^N225': 'Nikkei 225',
+    };
+
+    sortedIndices.slice(0, 3).forEach(idx => {
+      if (idx.changePercent > 0) {
+        strongest.push({
+          currency: indexNames[idx.symbol] || idx.name,
+          change: idx.changePercent,
+          reason: `Index up ${idx.changePercent.toFixed(2)}%`,
+        });
+      }
+    });
+
+    sortedIndices.slice(-3).forEach(idx => {
+      if (idx.changePercent < 0) {
+        weakest.push({
+          currency: indexNames[idx.symbol] || idx.name,
+          change: idx.changePercent,
+          reason: `Index down ${Math.abs(idx.changePercent).toFixed(2)}%`,
+        });
+      }
+    });
+  }
+
+  // Use crypto rankings to fill in gaps
+  if (rankings.length > 0) {
+    const sortedRankings = [...rankings].sort((a, b) => (b.change24h || 0) - (a.change24h || 0));
+    
+    sortedRankings.slice(0, 3).forEach(r => {
+      if (r.change24h > 0 && strongest.length < 3) {
+        strongest.push({
+          currency: r.symbol,
+          change: r.change24h || 0,
+          reason: `Crypto up ${(r.change24h || 0).toFixed(2)}% (24h)`,
+        });
+      }
+    });
+
+    sortedRankings.slice(-3).forEach(r => {
+      if (r.change24h < 0 && weakest.length < 3) {
+        weakest.push({
+          currency: r.symbol,
+          change: r.change24h || 0,
+          reason: `Crypto down ${Math.abs(r.change24h || 0).toFixed(2)}% (24h)`,
+        });
+      }
+    });
+  }
+
+  // Default session info
+  const sessions: SessionInfo = {
+    current: 'Global',
+    status: 'Open',
+    nextOpen: 'Asian',
+    timeToNext: 'Ongoing',
+  };
+
+  // Determine current trading session based on time
+  const hour = new Date().getUTCHours();
+  if (hour >= 0 && hour < 6) {
+    sessions.current = 'Asian';
+    sessions.status = hour >= 1 ? 'Open' : 'Closed';
+    sessions.nextOpen = 'London';
+    sessions.timeToNext = `${(7 - hour)}h`;
+  } else if (hour >= 6 && hour < 12) {
+    sessions.current = 'European / London';
+    sessions.status = 'Open';
+    sessions.nextOpen = 'New York';
+    sessions.timeToNext = `${(13 - hour)}h ${30 - new Date().getUTCMinutes()}m`;
+  } else {
+    sessions.current = 'New York / Americas';
+    sessions.status = 'Open';
+    sessions.nextOpen = 'Asian';
+    sessions.timeToNext = `${(24 - hour + 1)}h`;
+  }
+
   return {
-    strongest: [
-      { currency: 'USD', change: 0.45, reason: 'Fed hawkish stance' },
-      { currency: 'CHF', change: 0.32, reason: 'Safe haven demand' },
-      { currency: 'AUD', change: 0.28, reason: 'Commodity rally' }
-    ],
-    weakest: [
-      { currency: 'JPY', change: -0.52, reason: 'BoJ dovish policy' },
-      { currency: 'EUR', change: -0.38, reason: 'ECB concerns' },
-      { currency: 'GBP', change: -0.24, reason: 'Brexit uncertainty' }
-    ],
-    volatility: [
-      { currency: 'BTC', level: 'High', value: 3.2 },
-      { currency: 'ETH', level: 'High', value: 2.8 },
-      { currency: 'GBP', level: 'Medium', value: 1.4 },
-      { currency: 'EUR', level: 'Low', value: 0.8 }
-    ],
-    sessions: {
-      current: 'London',
-      status: 'Open',
-      nextOpen: 'New York',
-      timeToNext: '2h 15m'
-    }
+    strongest: strongest.slice(0, 3),
+    weakest: weakest.slice(0, 3),
+    volatility: volatilityItems.slice(0, 6),
+    sessions,
   };
 };
 
@@ -35,7 +161,8 @@ const MarketAnalytics = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['marketAnalytics'],
     queryFn: fetchMarketAnalytics,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   if (isLoading) {
@@ -91,51 +218,59 @@ const MarketAnalytics = () => {
         </div>
       </div>
 
-      {/* Strongest Currencies */}
+      {/* Strongest Markets */}
       <div className="glass-card p-4 rounded-lg animate-fade-in">
         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-success" />
           Strongest Today
         </h4>
         <div className="space-y-2">
-          {data?.strongest.map((item, index) => (
-            <div key={item.currency} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded">
-                  {index + 1}
-                </span>
-                <span className="font-medium text-sm">{item.currency}</span>
+          {data?.strongest.length ? (
+            data.strongest.map((item, index) => (
+              <div key={item.currency} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded">
+                    {index + 1}
+                  </span>
+                  <span className="font-medium text-sm">{item.currency}</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-success">+{item.change.toFixed(2)}%</div>
+                  <div className="text-xs text-muted-foreground">{item.reason}</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-success">+{item.change}%</div>
-                <div className="text-xs text-muted-foreground">{item.reason}</div>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground py-2">Loading live data...</p>
+          )}
         </div>
       </div>
 
-      {/* Weakest Currencies */}
+      {/* Weakest Markets */}
       <div className="glass-card p-4 rounded-lg animate-fade-in">
         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
           <TrendingDown className="w-4 h-4 text-warning" />
           Weakest Today
         </h4>
         <div className="space-y-2">
-          {data?.weakest.map((item, index) => (
-            <div key={item.currency} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
-                  {index + 1}
-                </span>
-                <span className="font-medium text-sm">{item.currency}</span>
+          {data?.weakest.length ? (
+            data.weakest.map((item, index) => (
+              <div key={item.currency} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
+                    {index + 1}
+                  </span>
+                  <span className="font-medium text-sm">{item.currency}</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-warning">{item.change.toFixed(2)}%</div>
+                  <div className="text-xs text-muted-foreground">{item.reason}</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-warning">{item.change}%</div>
-                <div className="text-xs text-muted-foreground">{item.reason}</div>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground py-2">Loading live data...</p>
+          )}
         </div>
       </div>
 
@@ -153,7 +288,7 @@ const MarketAnalytics = () => {
                 <Badge className={`text-xs ${getVolatilityColor(item.level)}`}>
                   {item.level}
                 </Badge>
-                <span className="text-xs text-muted-foreground">{item.value}%</span>
+                <span className="text-xs text-muted-foreground">{item.value.toFixed(2)}%</span>
               </div>
             </div>
           ))}

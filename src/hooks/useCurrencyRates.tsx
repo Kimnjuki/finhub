@@ -131,11 +131,11 @@ export const useCurrencyRates = (): UseCurrencyRatesReturn => {
     setError(null);
 
     try {
-      // Build the API URL (Convex HTTP action)
-      const convexUrl = import.meta.env.VITE_CONVEX_URL as string;
-      let url = `${convexUrl}/currency-rates?base=${baseCurrency}`;
-      if (targetCurrencies && targetCurrencies.length > 0) {
-        url += `&currencies=${targetCurrencies.join(',')}`;
+      const apiKey = '3da7enfkjpy040dmwlar';
+      const targets = targetCurrencies && targetCurrencies.length > 0 ? targetCurrencies.join(',') : undefined;
+      let url = `https://freecryptoapi.com/api/v1/rates?base=${encodeURIComponent(baseCurrency)}&apikey=${apiKey}`;
+      if (targets) {
+        url += `&currencies=${encodeURIComponent(targets)}`;
       }
 
       console.log('Fetching currency rates from:', url);
@@ -151,27 +151,30 @@ export const useCurrencyRates = (): UseCurrencyRatesReturn => {
       }
 
       const data: CurrencyRatesResponse = await response.json();
-      
-      if (!data.success) {
+
+      if (!data || !data.success || !data.rates) {
         throw new Error('API returned unsuccessful response');
       }
 
       console.log('Received currency rates:', data);
-      
-      setRates(data.rates);
-      setLastUpdated(data.timestamp);
-      return data.rates;
+
+      const normalized: CurrencyRate = {};
+      for (const [currency, rate] of Object.entries(data.rates)) {
+        normalized[currency.toUpperCase()] = typeof rate === 'number' ? rate : parseFloat((rate as any));
+      }
+
+      setRates(normalized);
+      setLastUpdated(typeof data.timestamp === 'number' ? data.timestamp : Date.now());
+      return normalized;
 
     } catch (fetchError) {
       console.warn('Currency rates fetch failed, using fallback rates:', fetchError);
       setError(fetchError instanceof Error ? fetchError.message : 'Failed to fetch rates');
-      
-      // Use fallback rates
+
       let selectedRates: CurrencyRate = {};
       if (baseCurrency === 'USD') {
         selectedRates = fallbackRates;
       } else {
-        // Convert fallback rates to the requested base currency
         const baseRate = fallbackRates[baseCurrency];
         if (baseRate) {
           const convertedRates: CurrencyRate = {};

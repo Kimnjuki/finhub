@@ -1,7 +1,9 @@
 import { DataSource, MarketDataPoint, OrderBook, Trade, Candle, NewsItem, TimeInterval } from '../types';
+import { proxyFetch } from '../httpClient';
 
 const API_KEY = import.meta.env.VITE_POLYGON_API_KEY || '';
 const BASE_URL = 'https://api.polygon.io';
+const SERVICE = 'polygon';
 
 class RateLimiter {
   private lastCallTime = 0;
@@ -36,10 +38,17 @@ export const polygonSource = {
   ): Promise<Candle[]> {
     return limiter.throttle(async () => {
       const url = `${BASE_URL}/v2/aggs/ticker/${symbol}/range/${multiplier}/${timespan}/${from}/${to}?apiKey=${API_KEY}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] Aggregates HTTP ${res.status}`);
+        return [];
+      }
       const data = await res.json();
       
-      if (data.status !== 'OK') throw new Error(`Polygon API error: ${data.error || 'Unknown'}`);
+      if (data.status !== 'OK') {
+        console.warn(`[Polygon] API error: ${data.error || 'Unknown'}`);
+        return [];
+      }
       
       return (data.results || []).map((r: any) => ({
         symbol,
@@ -60,7 +69,11 @@ export const polygonSource = {
   async getTrades(symbol: string, limit: number = 100): Promise<Trade[]> {
     return limiter.throttle(async () => {
       const url = `${BASE_URL}/v3/trades/${symbol}?limit=${limit}&apiKey=${API_KEY}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] Trades HTTP ${res.status}`);
+        return [];
+      }
       const data = await res.json();
       
       return (data.results || []).map((r: any) => ({
@@ -76,15 +89,23 @@ export const polygonSource = {
     });
   },
 
-  async getLastQuote(symbol: string): Promise<MarketDataPoint> {
+  async getLastQuote(symbol: string): Promise<MarketDataPoint | null> {
     return limiter.throttle(async () => {
       const url = `${BASE_URL}/v2/last/nbbo/${symbol}?apiKey=${API_KEY}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] HTTP ${res.status} for ${symbol}`);
+        return null;
+      }
       const data = await res.json();
       
-      if (data.status !== 'OK') throw new Error(`Polygon API error for ${symbol}`);
+      if (data.status !== 'OK') {
+        console.warn(`[Polygon] API error for ${symbol}: ${data.error || 'Unknown'}`);
+        return null;
+      }
       
       const quote = data.results;
+      if (!quote) return null;
       return {
         sourceId: 'polygon',
         symbol,
@@ -98,13 +119,18 @@ export const polygonSource = {
     });
   },
 
-  async getPreviousClose(symbol: string): Promise<MarketDataPoint> {
+  async getPreviousClose(symbol: string): Promise<MarketDataPoint | null> {
     return limiter.throttle(async () => {
       const url = `${BASE_URL}/v2/aggs/ticker/${symbol}/prev?apiKey=${API_KEY}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] Previous close HTTP ${res.status} for ${symbol}`);
+        return null;
+      }
       const data = await res.json();
       
       const result = data.results?.[0];
+      if (!result) return null;
       return {
         sourceId: 'polygon',
         symbol,
@@ -124,7 +150,11 @@ export const polygonSource = {
   async getMarketNews(limit: number = 10): Promise<NewsItem[]> {
     return limiter.throttle(async () => {
       const url = `${BASE_URL}/v2/reference/news?limit=${limit}&apiKey=${API_KEY}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] News HTTP ${res.status}`);
+        return [];
+      }
       const data = await res.json();
       
       return (data.results || []).map((r: any) => ({
@@ -147,7 +177,11 @@ export const polygonSource = {
   async getTickerDetails(symbol: string): Promise<any> {
     return limiter.throttle(async () => {
       const url = `${BASE_URL}/v3/reference/tickers/${symbol}?apiKey=${API_KEY}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] Ticker details HTTP ${res.status} for ${symbol}`);
+        return null;
+      }
       const data = await res.json();
       return data.results;
     });
@@ -158,7 +192,11 @@ export const polygonSource = {
       const params = new URLSearchParams({ apiKey: API_KEY });
       if (expirationDate) params.set('expiration_date', expirationDate);
       const url = `${BASE_URL}/v3/reference/options/contracts/${symbol}?${params}`;
-      const res = await fetch(url);
+      const res = await proxyFetch(SERVICE, url);
+      if (!res.ok) {
+        console.warn(`[Polygon] Options chain HTTP ${res.status} for ${symbol}`);
+        return [];
+      }
       const data = await res.json();
       return data.results || [];
     });

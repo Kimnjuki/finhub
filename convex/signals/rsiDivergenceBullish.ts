@@ -1,7 +1,7 @@
 // Signal for RSI bullish divergence detection
-import { defineAction, action, defineQuery, query } from "convex/server";
+import { action } from "convex/server";
 
-export const checkRsiDivergenceBullish = defineAction({
+export const checkRsiDivergenceBullish = action({
   async handler(ctx: any, args: any) {
     // TODO: Implement RSI bullish divergence detection logic
     return { divergence: false };

@@ -1,0 +1,1 @@
+const fs=require("fs");const W=(n,L)=>fs.writeFileSync("convex/"+n,L.join("\n"));W("test7.txt",["ok"]);console.log(require("path").join(__dirname,"convex","gen2.js")+" works");

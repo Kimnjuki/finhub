@@ -14,13 +14,14 @@ export class Aggregator {
    * Aggregate price quotes from multiple sources into a single unified quote
    */
   aggregateQuotes(points: MarketDataPoint[]): AggregatedQuote | null {
-    if (points.length === 0) return null;
+    // Guard against undefined/null entries (can happen when sources return empty results)
+    const validPoints = points.filter((p): p is MarketDataPoint => p != null && typeof p === 'object' && 'symbol' in p);
+    if (validPoints.length === 0) return null;
 
-    const symbol = points[0].symbol;
-    const assetClass = points[0].assetClass;
+    const { symbol, assetClass } = validPoints[0];
     
     // Extract prices for median calculation
-    const prices = points
+    const prices = validPoints
       .filter(p => p.price > 0)
       .map(p => p.price);
     
@@ -31,11 +32,11 @@ export class Aggregator {
     const medianPrice = this.median(sortedPrices);
     
     // Detect and filter outliers using IQR
-    const cleanPoints = this.filterOutliers(points);
+    const cleanPoints = this.filterOutliers(validPoints);
     const cleanPrices = cleanPoints.map(p => p.price);
     
     // Volume-weighted average if volume data available
-    const volumeData = points.filter(p => p.volume && p.volume > 0);
+    const volumeData = validPoints.filter(p => p.volume && p.volume > 0);
     let vwap: number | undefined;
     if (volumeData.length > 0) {
       const totalValue = volumeData.reduce((sum, p) => sum + (p.price * (p.volume || 0)), 0);
@@ -44,22 +45,22 @@ export class Aggregator {
     }
 
     // Calculate average change and change percent
-    const changes = cleanPoints.filter(p => p.change !== undefined).map(p => p.change!);
-    const changePcts = cleanPoints.filter(p => p.changePercent !== undefined).map(p => p.changePercent!);
+    const changes = cleanPoints.filter(p => p.change !== undefined).map(p => p.change);
+    const changePcts = cleanPoints.filter(p => p.changePercent !== undefined).map(p => p.changePercent);
     const avgChange = changes.length > 0 ? changes.reduce((a, b) => a + b, 0) / changes.length : undefined;
     const avgChangePct = changePcts.length > 0 ? changePcts.reduce((a, b) => a + b, 0) / changePcts.length : undefined;
 
     // Aggregate bid/ask for spread
-    const bids = points.filter(p => p.bid && p.bid > 0).map(p => p.bid!);
-    const asks = points.filter(p => p.ask && p.ask > 0).map(p => p.ask!);
+    const bids = validPoints.filter(p => p.bid && p.bid > 0).map(p => p.bid);
+    const asks = validPoints.filter(p => p.ask && p.ask > 0).map(p => p.ask);
     const avgBid = bids.length > 0 ? bids.reduce((a, b) => a + b, 0) / bids.length : undefined;
     const avgAsk = asks.length > 0 ? asks.reduce((a, b) => a + b, 0) / asks.length : undefined;
 
     // Aggregate volume
-    const totalVolume = points.reduce((sum, p) => sum + (p.volume || 0), 0);
+    const totalVolume = validPoints.reduce((sum, p) => sum + (p.volume || 0), 0);
 
     // Determine confidence based on source count and quality
-    const uniqueSources = new Set(points.map(p => p.sourceId));
+    const uniqueSources = new Set(validPoints.map(p => p.sourceId));
     const sourceCount = uniqueSources.size;
     let confidence: 'high' | 'medium' | 'low' = 'low';
     if (sourceCount >= 3) confidence = 'high';
@@ -74,14 +75,15 @@ export class Aggregator {
     }
 
     // Calculate highest/lowest 24h across sources
-    const highs = points.filter(p => p.high).map(p => p.high!);
-    const lows = points.filter(p => p.low).map(p => p.low!);
+    const highs = validPoints.filter(p => p.high).map(p => p.high);
+    const lows = validPoints.filter(p => p.low).map(p => p.low);
     const high24h = highs.length > 0 ? Math.max(...highs) : undefined;
     const low24h = lows.length > 0 ? Math.min(...lows) : undefined;
 
+
     return {
       symbol,
-      assetClass: assetClass || 'crypto',
+      assetClass,
       name: symbol,
       price: vwap || medianPrice,
       change: avgChange || 0,

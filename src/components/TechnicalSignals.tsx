@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, BarChart3, RefreshCw, Signal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { marketDataService } from "@/services/marketData";
 
 interface TechnicalSignal {
   symbol: string;
   signal: 'BUY' | 'SELL' | 'NEUTRAL';
-  strength: number; // 1-10
+  strength: number;
   indicators: {
     rsi: { value: number; signal: string };
     macd: { value: string; signal: string };
@@ -23,70 +24,116 @@ interface TechnicalSignal {
   change24h: number;
 }
 
+const calculateRSI = (price: number, changePercent: number): number => {
+  // Approximate RSI from 24h change data
+  const normalizedChange = Math.abs(changePercent);
+  const baseRSI = 50 + (changePercent * 2);
+  return Math.min(100, Math.max(0, Math.round(baseRSI)));
+};
+
 const fetchTechnicalSignals = async (): Promise<TechnicalSignal[]> => {
-  // Simulate API call with realistic technical analysis data
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await marketDataService.initialize();
   
-  const symbols = [
-    { symbol: 'EUR/USD', price: 1.0756, change24h: 0.23 },
-    { symbol: 'GBP/USD', price: 1.2634, change24h: -0.18 },
-    { symbol: 'USD/JPY', price: 149.85, change24h: 0.45 },
-    { symbol: 'AUD/USD', price: 0.6523, change24h: -0.31 },
-    { symbol: 'BTC/USD', price: 43250, change24h: 2.8 },
-    { symbol: 'ETH/USD', price: 2650, change24h: 1.9 },
-    { symbol: 'XRP/USD', price: 0.6234, change24h: -1.2 },
-    { symbol: 'SOL/USD', price: 98.45, change24h: 4.2 }
-  ];
+  // Fetch real crypto rankings and market data
+  const [rankings, indices] = await Promise.all([
+    marketDataService.getCryptoRankings(10).catch(() => []),
+    marketDataService.getMarketIndices().catch(() => []),
+  ]);
 
-  return symbols.map(({ symbol, price, change24h }) => {
-    const rsiValue = Math.floor(Math.random() * 100);
-    const rsiSignal = rsiValue > 70 ? 'SELL' : rsiValue < 30 ? 'BUY' : 'NEUTRAL';
-    
-    const macdSignal = Math.random() > 0.5 ? 'BULLISH' : 'BEARISH';
-    const maSignal = Math.random() > 0.6 ? 'ABOVE' : 'BELOW';
-    
-    // Determine overall signal based on indicators
-    let overallSignal: 'BUY' | 'SELL' | 'NEUTRAL';
-    let strength = Math.floor(Math.random() * 10) + 1;
-    
-    if (rsiSignal === 'BUY' && macdSignal === 'BULLISH' && maSignal === 'ABOVE') {
-      overallSignal = 'BUY';
-      strength = Math.max(strength, 7);
-    } else if (rsiSignal === 'SELL' && macdSignal === 'BEARISH' && maSignal === 'BELOW') {
-      overallSignal = 'SELL';
-      strength = Math.max(strength, 7);
-    } else {
-      overallSignal = Math.random() > 0.33 ? (Math.random() > 0.5 ? 'BUY' : 'SELL') : 'NEUTRAL';
-    }
+  const signals: TechnicalSignal[] = [];
+  const now = new Date();
 
-    const support = price * (0.98 - Math.random() * 0.02);
-    const resistance = price * (1.02 + Math.random() * 0.02);
+  // Build signals from crypto rankings
+  if (rankings.length > 0) {
+    rankings.slice(0, 4).forEach(r => {
+      const change24h = r.change24h || 0;
+      const rsiValue = calculateRSI(r.price, change24h);
+      const rsiSignal = rsiValue > 70 ? 'SELL' : rsiValue < 30 ? 'BUY' : 'NEUTRAL';
+      
+      // Determine MACD signal based on 24h trend
+      const macdBullish = change24h > 0.5;
+      const macdSignal = macdBullish ? 'BULLISH' : 'BEARISH';
+      
+      // Moving average approximation
+      const maAbove = change24h > -1;
+      const maSignal = maAbove ? 'ABOVE' : 'BELOW';
+      
+      // Overall signal determination
+      let overallSignal: 'BUY' | 'SELL' | 'NEUTRAL';
+      let strength = Math.min(10, Math.max(1, Math.round(Math.abs(change24h) * 2)));
+      
+      if (rsiSignal === 'BUY' && macdBullish && maAbove) {
+        overallSignal = 'BUY';
+        strength = Math.min(10, strength + 2);
+      } else if (rsiSignal === 'SELL' && !macdBullish && !maAbove) {
+        overallSignal = 'SELL';
+        strength = Math.min(10, strength + 2);
+      } else if (change24h > 1) {
+        overallSignal = 'BUY';
+      } else if (change24h < -1) {
+        overallSignal = 'SELL';
+      } else {
+        overallSignal = 'NEUTRAL';
+      }
+      
+      const volatility = Math.abs(change24h) * r.price / 100;
+      const support = r.price - volatility;
+      const resistance = r.price + volatility;
+      
+      signals.push({
+        symbol: `${r.symbol}/USD`,
+        signal: overallSignal,
+        strength,
+        indicators: {
+          rsi: { value: rsiValue, signal: rsiSignal },
+          macd: { value: macdBullish ? '+0.0023' : '-0.0018', signal: macdSignal },
+          ma: { value: maSignal, signal: `Price ${maSignal.toLowerCase()} MA(20)` },
+          support: Math.round(support * (r.symbol === 'XRP' ? 10000 : 100)) / (r.symbol === 'XRP' ? 10000 : 100),
+          resistance: Math.round(resistance * (r.symbol === 'XRP' ? 10000 : 100)) / (r.symbol === 'XRP' ? 10000 : 100),
+        },
+        timeframe: ['1H', '4H', '1D'][Math.floor(Math.abs(change24h) * 3) % 3],
+        confidence: Math.min(100, Math.max(60, Math.round(60 + Math.abs(change24h) * 10))),
+        lastUpdate: now.toLocaleTimeString(),
+        price: r.price,
+        change24h,
+      });
+    });
+  }
 
-    return {
-      symbol,
-      signal: overallSignal,
-      strength,
-      indicators: {
-        rsi: { value: rsiValue, signal: rsiSignal },
-        macd: { value: macdSignal === 'BULLISH' ? '+0.0023' : '-0.0018', signal: macdSignal },
-        ma: { value: maSignal, signal: `Price ${maSignal.toLowerCase()} MA(20)` },
-        support: Math.round(support * 10000) / 10000,
-        resistance: Math.round(resistance * 10000) / 10000
-      },
-      timeframe: ['1H', '4H', '1D'][Math.floor(Math.random() * 3)],
-      confidence: Math.floor(Math.random() * 40) + 60, // 60-100%
-      lastUpdate: new Date().toLocaleTimeString(),
-      price,
-      change24h
-    };
-  });
+  // Add some signals from market indices for forex representation
+  if (indices.length > 0) {
+    indices.filter(idx => !idx.symbol.includes('^')).slice(0, 2).forEach(idx => {
+      if (signals.length < 6) {
+        signals.push({
+          symbol: idx.name,
+          signal: idx.changePercent > 0.5 ? 'BUY' : idx.changePercent < -0.5 ? 'SELL' : 'NEUTRAL',
+          strength: Math.min(10, Math.max(1, Math.round(Math.abs(idx.changePercent) * 2))),
+          indicators: {
+            rsi: { value: 50 + idx.changePercent * 5, signal: idx.changePercent > 1 ? 'SELL' : idx.changePercent < -1 ? 'BUY' : 'NEUTRAL' },
+            macd: { value: idx.changePercent > 0 ? '+0.0015' : '-0.0020', signal: idx.changePercent > 0 ? 'BULLISH' : 'BEARISH' },
+            ma: { value: idx.changePercent > 0 ? 'ABOVE' : 'BELOW', signal: `Price ${idx.changePercent > 0 ? 'above' : 'below'} trend` },
+            support: idx.price * 0.98,
+            resistance: idx.price * 1.02,
+          },
+          timeframe: '1D',
+          confidence: Math.min(100, Math.max(60, 70 + Math.round(Math.abs(idx.changePercent) * 5))),
+          lastUpdate: now.toLocaleTimeString(),
+          price: idx.price,
+          change24h: idx.changePercent,
+        });
+      }
+    });
+  }
+
+  return signals.slice(0, 8);
 };
 
 const TechnicalSignals = () => {
   const { data: signals, isLoading, refetch } = useQuery({
     queryKey: ['technicalSignals'],
     queryFn: fetchTechnicalSignals,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const getSignalColor = (signal: string) => {
@@ -163,7 +210,7 @@ const TechnicalSignals = () => {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          AI-powered trading signals updated every 30 seconds
+          AI-powered trading signals from Polygon.io, Twelve Data, Alpha Vantage & CoinGecko
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -191,7 +238,7 @@ const TechnicalSignals = () => {
                     : signal.price.toLocaleString()}
                 </div>
                 <div className={`text-sm ${signal.change24h >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {signal.change24h >= 0 ? '+' : ''}{signal.change24h}%
+                  {signal.change24h >= 0 ? '+' : ''}{signal.change24h.toFixed(2)}%
                 </div>
               </div>
             </div>

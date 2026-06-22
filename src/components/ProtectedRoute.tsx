@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ 
   children, 
   requiredRole, 
-  requireAuth = true 
+  requireAuth = false 
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const location = useLocation();

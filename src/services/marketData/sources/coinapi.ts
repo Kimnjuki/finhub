@@ -1,11 +1,12 @@
 import { DataSource, MarketDataPoint, OrderBook, Trade, Candle, TimeInterval, NewsItem } from '../types';
+import { proxyFetch, buildProxyUrl } from '../httpClient';
 
 const API_KEY = import.meta.env.VITE_COINAPI_API_KEY || '';
 const REST_URL = 'https://rest.coinapi.io';
 const WS_URL = 'wss://ws.coinapi.io/v1';
+const SERVICE = 'coinapi';
 
 // Rate limiter: free tier = 100 req/day, paid plans vary.
-// Use generous defaults but throttle responsibly.
 class RateLimiter {
   private requestTimestamps: number[] = [];
   private maxRequests: number;
@@ -18,7 +19,6 @@ class RateLimiter {
 
   async throttle<T>(fn: () => Promise<T>): Promise<T> {
     const now = Date.now();
-    // Prune old entries
     this.requestTimestamps = this.requestTimestamps.filter(ts => now - ts < this.windowMs);
 
     if (this.requestTimestamps.length >= this.maxRequests) {
@@ -35,8 +35,7 @@ class RateLimiter {
 const limiter = new RateLimiter(100, 60000); // 100 req/min ceiling
 
 /**
- * CoinAPI REST v1 fetch wrapper.
- * https://docs.coinapi.io/#rest-v1
+ * CoinAPI REST v1 fetch wrapper using proxy to avoid CORS.
  */
 async function coinApiFetch(path: string, retries = 2): Promise<any> {
   if (!API_KEY) {
@@ -48,7 +47,7 @@ async function coinApiFetch(path: string, retries = 2): Promise<any> {
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, {
+      const res = await proxyFetch(SERVICE, url, {
         headers: {
           'X-CoinAPI-Key': API_KEY,
           'Accept': 'application/json',
@@ -82,8 +81,6 @@ async function coinApiFetch(path: string, retries = 2): Promise<any> {
 // ---- Helpers ----
 
 function mapSymbol(symbol: string, assetClass?: string): string {
-  // CoinAPI symbols use _ as separator, e.g. BITSTREAM_SPOT_BTC_USD
-  // For simple symbols like "BTC/USD" -> "BTC_USD" or "BTCUSD"
   if (symbol.includes('/')) {
     return symbol.replace('/', '');
   }
@@ -91,7 +88,6 @@ function mapSymbol(symbol: string, assetClass?: string): string {
 }
 
 function determineAssetClass(symbol: string): 'crypto' | 'forex' | 'stock' {
-  // CoinAPI mostly does crypto; forex pairs like EUR/USD
   const sym = symbol.toUpperCase().replace(/[/_-]/g, '');
   const cryptoIndicators = ['BTC', 'ETH', 'XRP', 'ADA', 'SOL', 'DOT', 'LTC', 'BNB', 'MATIC', 'AVAX'];
   if (cryptoIndicators.some(c => sym.startsWith(c) || sym.endsWith(c))) {
@@ -106,7 +102,6 @@ function determineAssetClass(symbol: string): 'crypto' | 'forex' | 'stock' {
 function parseTradeId(id: any): string {
   if (typeof id === 'string') return id;
   if (typeof id === 'number') return String(id);
-  // CoinAPI sometimes omits trade IDs - fallback to timestamp
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -117,16 +112,10 @@ export const coinapiSource = {
 
   // ── Exchange / Asset Info ──────────────────────────────
 
-  /**
-   * List all available exchanges from CoinAPI.
-   */
   async getExchanges(): Promise<any[]> {
     return limiter.throttle(() => coinApiFetch('/v1/exchanges'));
   },
 
-  /**
-   * List all available assets (cryptocurrencies, fiat, etc.).
-   */
   async getAssets(filterCrypto: boolean = false): Promise<any[]> {
     return limiter.throttle(async () => {
       const data: any[] = await coinApiFetch('/v1/assets');
@@ -137,9 +126,6 @@ export const coinapiSource = {
     });
   },
 
-  /**
-   * List all available symbol pairs (trading pairs).
-   */
   async getSymbols(filterExchange?: string): Promise<any[]> {
     return limiter.throttle(async () => {
       let symbols: any[] = await coinApiFetch('/v1/symbols');
@@ -154,13 +140,8 @@ export const coinapiSource = {
 
   // ── Current Price ──────────────────────────────────────
 
-  /**
-   * Get the current (latest) exchange rate for a symbol.
-   * Symbol format: "BTC/USD" -> "BTCUSD" or "BITSTAMP_SPOT_BTC_USD"
-   */
   async getExchangeRate(symbol: string, base?: string, quote?: string): Promise<MarketDataPoint> {
     return limiter.throttle(async () => {
-      // CoinAPI /v1/exchangerate endpoint
       const [from, to] = symbol.includes('/') ? symbol.split('/') : [symbol, base || 'USD'];
       const data = await coinApiFetch(`/v1/exchangerate/${from}/${to}`);
 
@@ -183,10 +164,6 @@ export const coinapiSource = {
     });
   },
 
-  /**
-   * Get current quote for a specific symbol pair from a specific exchange.
-   * symbol e.g. "BITSTAMP_SPOT_BTC_USD"
-   */
   async getCurrentQuote(symbol: string): Promise<MarketDataPoint> {
     return limiter.throttle(async () => {
       const data = await coinApiFetch(`/v1/quotes/${symbol}/current`);
@@ -213,13 +190,6 @@ export const coinapiSource = {
 
   // ── OHLCV / Historical Data ────────────────────────────
 
-  /**
-   * Get OHLCV (candles) for a symbol.
-   * symbol_id: e.g. "BITSTAMP_SPOT_BTC_USD"
-   * period_id: e.g. "1MIN", "5MIN", "1HRS", "1DAY"
-   * time_start: ISO 8601 timestamp
-   * limit: max records (max 100000)
-   */
   async getOhlcv(
     symbolId: string,
     periodId: string = '1DAY',
@@ -255,9 +225,6 @@ export const coinapiSource = {
     });
   },
 
-  /**
-   * Get latest OHLCV candle(s).
-   */
   async getLatestOhlcv(symbolId: string, periodId: string = '1DAY'): Promise<Candle[]> {
     return limiter.throttle(async () => {
       const data = await coinApiFetch(`/v1/ohlcv/${symbolId}/latest?period_id=${periodId}`);
@@ -282,9 +249,6 @@ export const coinapiSource = {
 
   // ── Trades ──────────────────────────────────────────────
 
-  /**
-   * Get recent trades for a symbol.
-   */
   async getTrades(symbolId: string, limit: number = 100): Promise<Trade[]> {
     return limiter.throttle(async () => {
       const data = await coinApiFetch(`/v1/trades/${symbolId}/history?limit=${limit}`);
@@ -306,9 +270,6 @@ export const coinapiSource = {
     });
   },
 
-  /**
-   * Get latest trades.
-   */
   async getLatestTrades(symbolId: string): Promise<Trade[]> {
     return limiter.throttle(async () => {
       const data = await coinApiFetch(`/v1/trades/${symbolId}/latest`);
@@ -332,10 +293,6 @@ export const coinapiSource = {
 
   // ── Order Book ──────────────────────────────────────────
 
-  /**
-   * Get current order book for a symbol.
-   * depth: limit levels per side (max 5000)
-   */
   async getOrderBook(symbolId: string, depth: number = 50): Promise<OrderBook> {
     return limiter.throttle(async () => {
       const data = await coinApiFetch(`/v1/orderbooks/${symbolId}/current?limit_levels=${depth}`);
@@ -365,28 +322,15 @@ export const coinapiSource = {
     });
   },
 
-  // ── News (via CoinAPI CryptoPanic / integrated) ──────────
+  // ── News ──────────────────────────────────────────
 
-  /**
-   * CoinAPI does not have a native news endpoint, but we can fetch
-   * metadata and aggregate from the available data.
-   * For a full news feed, consider coindesk or finnhub.
-   */
   async getNews(limit: number = 20): Promise<NewsItem[]> {
-    // CoinAPI doesn't provide native news; return empty array.
-    // Users should use finnhub/coindesk for news.
     console.warn('[CoinAPI] News not supported. Use Finnhub or CoinDesk for market news.');
     return [];
   },
 
   // ── WebSocket Support ──────────────────────────────────
 
-  /**
-   * Create a WebSocket connection for real-time data.
-   * CoinAPI WebSocket protocol:
-   * Subscribe: { "type": "hello", "apikey": "...", "subscribe_data": [...] }
-   * Data types: trades, quotes, ohlcv, book5, book20, book50, book100
-   */
   createWebSocket(subscriptions?: { type: string; symbol_id: string }[]): WebSocket | null {
     if (!API_KEY) {
       console.warn('[CoinAPI] No API key configured for WebSocket');
@@ -396,7 +340,6 @@ export const coinapiSource = {
     const ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
-      // Send hello message
       const helloMsg: any = {
         type: 'hello',
         apikey: API_KEY,
@@ -409,9 +352,6 @@ export const coinapiSource = {
     return ws;
   },
 
-  /**
-   * Subscribe to real-time trades via WebSocket.
-   */
   subscribeTrades(ws: WebSocket, symbolIds: string[]): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
@@ -424,9 +364,6 @@ export const coinapiSource = {
     }
   },
 
-  /**
-   * Subscribe to real-time quotes via WebSocket.
-   */
   subscribeQuotes(ws: WebSocket, symbolIds: string[]): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
@@ -439,11 +376,7 @@ export const coinapiSource = {
     }
   },
 
-  /**
-   * Subscribe to real-time order book (level-2) via WebSocket.
-   */
   subscribeOrderBook(ws: WebSocket, symbolIds: string[], depth: number = 50): void {
-    const bookType = `book${depth}` as const;
     const validDepths = [5, 10, 20, 50, 100] as const;
     const actualType = validDepths.includes(depth as typeof validDepths[number])
       ? (`book${depth}` as string)
@@ -460,9 +393,6 @@ export const coinapiSource = {
     }
   },
 
-  /**
-   * Unsubscribe from channels.
-   */
   unsubscribe(ws: WebSocket, symbolIds: string[], dataTypes: string[] = ['trade']): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({

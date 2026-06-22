@@ -1,7 +1,8 @@
 import { DataSource, MarketDataPoint, TechnicalIndicator, TimeInterval } from '../types';
+import { proxyFetch, buildProxyUrl } from '../httpClient';
 
 const API_KEY = import.meta.env.VITE_ALPHAVANTAGE_API_KEY || 'demo';
-const BASE_URL = 'https://www.alphavantage.co/query';
+const SERVICE = 'alphavantage';
 
 class RateLimiter {
   private lastCallTime = 0;
@@ -21,8 +22,8 @@ class RateLimiter {
 const limiter = new RateLimiter();
 
 async function avFetch(params: Record<string, string>): Promise<any> {
-  const url = `${BASE_URL}?${new URLSearchParams({ ...params, apikey: API_KEY })}`;
-  const res = await fetch(url);
+  const url = `https://www.alphavantage.co/query?${new URLSearchParams({ ...params, apikey: API_KEY })}`;
+  const res = await proxyFetch(SERVICE, url);
   return res.json();
 }
 

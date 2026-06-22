@@ -1,7 +1,7 @@
 // Signal for open interest divergence detection
-import { defineAction, action, defineQuery, query } from "convex/server";
+import { action } from "convex/server";
 
-export const checkOiDivergence = defineAction({
+export const checkOiDivergence = action({
   async handler(ctx: any, args: any) {
     // TODO: Implement open interest divergence detection logic
     return { divergence: false };

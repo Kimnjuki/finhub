@@ -5,8 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Smartphone, ArrowRight, CheckCircle, Shield, Zap, TrendingUp, Globe, Wallet, QrCode, Clock, Star, RefreshCw, Landmark, CreditCard, ArrowDownUp, Copy, ExternalLink, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Smartphone, ArrowRight, CheckCircle, Shield, Zap, TrendingUp, Globe, Wallet, QrCode, Clock, Star, RefreshCw, Landmark, CreditCard, ArrowDownUp, Copy, ExternalLink, ChevronRight, Loader2, Phone, User, AlertCircle, CheckCheck } from 'lucide-react';
+import { useMutation, useQuery } from 'convex/react';
+import { convex } from '@/integrations/convex/client';
+import { toast } from 'sonner';
 
 const providers = [
   { name: 'M-Pesa', countries: ['Kenya', 'Tanzania', 'Uganda', 'Rwanda', 'Mozambique', 'DRC', 'Ghana', 'Lesotho'], color: '#4CAF50', icon: '📱' },
@@ -37,7 +43,7 @@ const steps = [
   { icon: TrendingUp, title: 'Crypto Instantly in Wallet', desc: 'BTC, ETH, USDT or any supported crypto instantly credited' },
 ];
 
-const transactions = [
+const mockTransactions = [
   { type: 'buy', crypto: 'BTC', amount: '0.0025', local: 'KES 15,000', provider: 'M-Pesa', status: 'completed', date: '2025-06-03', fee: 0 },
   { type: 'sell', crypto: 'ETH', amount: '0.15', local: 'NGN 45,000', provider: 'Airtel Money', status: 'completed', date: '2025-06-02', fee: 0.5 },
   { type: 'buy', crypto: 'USDT', amount: '50', local: 'GHS 675', provider: 'MTN MoMo', status: 'pending', date: '2025-06-01', fee: 0 },
@@ -50,6 +56,80 @@ const MobileMoney = () => {
   const [selectedCurrency, setSelectedCurrency] = useState('KES');
   const [amount, setAmount] = useState('');
   const [selectedCrypto, setSelectedCrypto] = useState('BTC');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  const initiateMpesaPayment = useMutation('payments:mpesa:initiatePayment' as any);
+  const initiateMtnMoMo = useMutation('payments:mtnmomo:initiatePayment' as any);
+  const initiateAirtelMoney = useMutation('payments:airtelmoney:initiatePayment' as any);
+
+  const currentCurrency = currencies.find(c => c.code === selectedCurrency);
+  const cryptoPrice = currentCurrency ? (98000 / (currentCurrency.rate || 0.000067)) : 98000;
+  const receiveAmount = amount && parseFloat(amount) > 0 ? (parseFloat(amount) / (currentCurrency?.rate || 0.000067)).toFixed(6) : '0.000000';
+  
+  const handlePayment = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+    setShowConfirmation(true);
+  };
+  
+  const confirmPayment = async () => {
+    setIsProcessing(true);
+    try {
+      const paymentData = {
+        amount: parseFloat(amount),
+        currency: selectedCurrency,
+        phoneNumber,
+        cryptoAsset: selectedCrypto,
+        provider: selectedProvider,
+        type: activeTab,
+      };
+      
+      let result;
+      switch (selectedProvider) {
+        case 'M-Pesa':
+          result = await initiateMpesaPayment(paymentData);
+          break;
+        case 'MTN MoMo':
+          result = await initiateMtnMoMo(paymentData);
+          break;
+        case 'Airtel Money':
+          result = await initiateAirtelMoney(paymentData);
+          break;
+        default:
+          toast.error('Provider not yet supported');
+          return;
+      }
+      
+      if (result?.success) {
+        toast.success('Payment initiated! Check your phone for confirmation.');
+        setAmount('');
+        setPhoneNumber('');
+        setShowConfirmation(false);
+      }
+    } catch (error) {
+      toast.error('Payment failed. Please try again.');
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const formatCurrency = (value: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
 
   return (
     <>
@@ -124,6 +204,8 @@ const MobileMoney = () => {
                           value={amount} 
                           onChange={e => setAmount(e.target.value)}
                           className="flex-1"
+                          type="number"
+                          min="0"
                         />
                         <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
                           <SelectTrigger className="w-28">
@@ -148,7 +230,7 @@ const MobileMoney = () => {
                       <label className="text-sm text-muted-foreground mb-1.5 block">You Receive</label>
                       <div className="flex gap-2">
                         <div className="flex-1 h-10 px-3 rounded-md border border-border bg-muted/20 flex items-center text-sm">
-                          ~{amount ? (parseFloat(amount) * 0.000067).toFixed(6) : '0.000000'} BTC
+                          ~{receiveAmount} {selectedCrypto}
                         </div>
                         <Select value={selectedCrypto} onValueChange={setSelectedCrypto}>
                           <SelectTrigger className="w-28">
@@ -180,17 +262,100 @@ const MobileMoney = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div>
+                      <Label htmlFor="phone" className="text-sm text-muted-foreground mb-1.5 block">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          placeholder="+254 700 000 000"
+                          value={phoneNumber}
+                          onChange={e => setPhoneNumber(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
                     
                     <div className="p-3 rounded-lg bg-muted/20 space-y-1.5 text-xs text-muted-foreground">
-                      <div className="flex justify-between"><span>Exchange Rate</span><span>1 BTC = {(1 / 0.000067).toFixed(2)} KES</span></div>
+                      <div className="flex justify-between"><span>Exchange Rate</span><span>1 {selectedCrypto} = {formatCurrency(cryptoPrice, selectedCurrency)}</span></div>
                       <div className="flex justify-between"><span>Fee</span><span className="text-emerald-400">Free (Mobile Money)</span></div>
                       <div className="flex justify-between"><span>Estimated Arrival</span><span>~30 seconds</span></div>
                     </div>
                     
-                    <Button className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
-                      {activeTab === 'buy' ? 'Buy Crypto' : 'Sell Crypto'}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+                          onClick={handlePayment}
+                          disabled={isProcessing}
+                        >
+                          {activeTab === 'buy' ? 'Buy Crypto' : 'Sell Crypto'}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Confirm {activeTab === 'buy' ? 'Purchase' : 'Sale'}</DialogTitle>
+                          <DialogDescription>
+                            Please confirm your {activeTab} order details
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Amount</span>
+                            <span className="font-mono font-medium">{amount} {selectedCurrency}</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">You receive</span>
+                            <span className="font-mono font-medium">~{receiveAmount} {selectedCrypto}</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Provider</span>
+                            <span className="font-medium">{selectedProvider}</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Phone</span>
+                            <span className="font-medium">{phoneNumber}</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Fee</span>
+                            <span className="text-emerald-400 font-medium">Free</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setShowConfirmation(false)}
+                            disabled={isProcessing}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500"
+                            onClick={confirmPayment}
+                            disabled={isProcessing}
+                          >
+                            {isProcessing ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCheck className="mr-2 h-4 w-4" />
+                                Confirm & Pay
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </CardContent>
               </Card>
@@ -320,7 +485,7 @@ const MobileMoney = () => {
               </Button>
             </div>
             <div className="space-y-3">
-              {transactions.map((tx, i) => (
+              {mockTransactions.map((tx, i) => (
                 <Card key={i} className="border-border/30">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">

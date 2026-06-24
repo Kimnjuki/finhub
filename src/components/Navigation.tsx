@@ -92,8 +92,25 @@ const Navigation = () => {
           <Link to="/mobile-money">
             <Button variant="outline" size="sm" className="text-[11px] hover:bg-green-500/10 hover:text-green-400 border-green-500/20">M-Pesa</Button>
           </Link>
-          <Link to="/social-trading">
-            <Button variant="outline" size="sm" className="text-[11px] hover:bg-purple-500/10 hover:text-purple-400 border-purple-500/20">Social</Button>
+          <Link to="/markets">
+            <Button 
+              variant={location.pathname.startsWith("/markets") || location.pathname.startsWith("/forex") ? "default" : "outline"}
+              size="sm"
+            >
+              Markets
+            </Button>
+          </Link>
+          <Link to="/p2p">
+            <Button variant="outline" size="sm" className="text-[11px] hover:bg-blue-500/10 hover:text-blue-400 border-blue-500/20">P2P</Button>
+          </Link>
+          <Link to="/vault">
+            <Button variant="outline" size="sm" className="text-[11px] hover:bg-amber-500/10 hover:text-amber-400 border-amber-500/20">Vault</Button>
+          </Link>
+          <Link to="/learn">
+            <Button variant="outline" size="sm" className="text-[11px] hover:bg-purple-500/10 hover:text-purple-400 border-purple-500/20">Learn</Button>
+          </Link>
+          <Link to="/recurring">
+            <Button variant="outline" size="sm" className="text-[11px] hover:bg-teal-500/10 hover:text-teal-400 border-teal-500/20">DCA</Button>
           </Link>
           
           {/* User Menu */}

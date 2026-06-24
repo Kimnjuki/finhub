@@ -1003,6 +1003,34 @@ export default defineSchema({
     .index('by_user_and_instrument', ['userId', 'instrumentId'])
     .index('by_open', ['isOpen']),
 
+  orders: defineTable({
+    userId: v.string(),
+    portfolioId: v.string(),
+    instrumentId: v.string(),
+    instrumentSymbol: v.string(),
+    side: v.union(v.literal('buy'), v.literal('sell')),
+    orderType: v.union(v.literal('market'), v.literal('limit'), v.literal('stop_loss'), v.literal('take_profit')),
+    quantity: v.float64(),
+    price: v.optional(v.float64()),
+    stopPrice: v.optional(v.float64()),
+    timeInForce: v.string(),
+    status: v.union(v.literal('pending'), v.literal('open'), v.literal('partially_filled'), v.literal('filled'), v.literal('cancelled'), v.literal('rejected'), v.literal('expired')),
+    filledQuantity: v.float64(),
+    averageFillPrice: v.float64(),
+    fees: v.float64(),
+    exchangeOrderId: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    submittedAt: v.float64(),
+    filledAt: v.optional(v.float64()),
+    cancelledAt: v.optional(v.float64()),
+    updatedAt: v.float64(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_status', ['status'])
+    .index('by_user_and_status', ['userId', 'status'])
+    .index('by_instrument', ['instrumentId'])
+    .index('by_submitted_at', ['submittedAt']),
+
   portfolioTransactions: defineTable({
     accountId: v.string(),
     userId: v.string(),

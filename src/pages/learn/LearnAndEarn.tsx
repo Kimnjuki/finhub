@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { GraduationCap, BookOpen, Award, Trophy, Star, Search, Play, CheckCircle, Lock, TrendingUp, Clock, DollarSign, ChevronRight, Sparkles, Zap, Brain, BookMarked, BarChart3, Shield, Wallet, Coins, Gem, Users } from 'lucide-react';
+import { GraduationCap, BookOpen, Award, Trophy, Star, Search, Play, CheckCircle, Lock, TrendingUp, Clock, DollarSign, ChevronRight, Sparkles, Zap, Brain, BarChart3, Shield, Wallet, Coins, Gem, Users, ExternalLink, FileText, Video } from 'lucide-react';
 
 interface Lesson {
   id: string;
@@ -16,6 +16,7 @@ interface Lesson {
   completed: boolean;
   locked: boolean;
   quiz: { question: string; options: string[]; correct: number }[];
+  externalLinks?: { title: string; url: string; type: 'article' | 'video' | 'documentation' }[];
 }
 
 interface Course {
@@ -33,20 +34,32 @@ interface Course {
   icon: string;
   color: string;
   progress: number;
+  externalLinks?: { title: string; url: string; type: 'article' | 'video' | 'documentation' | 'guide' }[];
 }
+
+const recommendedResources: { title: string; url: string; type: 'article' | 'video' | 'documentation' | 'guide'; description: string }[] = [
+  { title: "Bitcoin Whitepaper", url: "https://bitcoin.org/bitcoin.pdf", type: "documentation", description: "The original whitepaper by Satoshi Nakamoto - essential reading" },
+  { title: "Ethereum Documentation", url: "https://ethereum.org/en/developers/docs/", type: "documentation", description: "Comprehensive guide to Ethereum and smart contracts" },
+  { title: "DeFi Education by Binance Academy", url: "https://academy.binance.com/en/articles/what-is-defi", type: "guide", description: "Beginner-friendly guide to Decentralized Finance" },
+  { title: "Crypto Security Best Practices", url: "https://www.coindesk.com/learn/crypto-security/", type: "article", description: "Essential security practices for protecting digital assets" },
+  { title: "TradingView Educational Resources", url: "https://www.tradingview.com/education/", type: "guide", description: "Learn technical analysis and chart patterns" },
+  { title: "Stablecoins in Africa", url: "https://www.chainalysis.com/blog/africa-cryptocurrency-adoption-2023/", type: "article", description: "Understanding stablecoin adoption in African markets" },
+  { title: "NFTs for Beginners", url: "https://ethereum.org/en/nft/", type: "documentation", description: "Official Ethereum guide to non-fungible tokens" },
+  { title: "How to Buy Bitcoin in Africa", url: "https://www.investopedia.com/technical-analysis/", type: "guide", description: "Step-by-step guide to purchasing crypto in Africa" }
+];
 
 const courses: Course[] = [
   { id: '1', title: 'Bitcoin Basics', description: 'Learn what Bitcoin is, how it works, and why it matters for Africa', category: 'Bitcoin', difficulty: 'Beginner', reward: 5, duration: '15 min', lessons: [
-    { id: 'l1', title: 'What is Bitcoin?', duration: '5 min', completed: true, locked: false, quiz: [{ question: 'Who created Bitcoin?', options: ['Vitalik Buterin', 'Satoshi Nakamoto', 'Elon Musk', 'Changpeng Zhao'], correct: 1 }, { question: 'What is the maximum supply of Bitcoin?', options: ['10 million', '21 million', '100 million', 'Unlimited'], correct: 1 }] },
-    { id: 'l2', title: 'How Bitcoin Mining Works', duration: '5 min', completed: false, locked: false, quiz: [{ question: 'What is Bitcoin mining?', options: ['Creating new Bitcoins from thin air', 'Solving complex math problems to validate transactions', 'Buying Bitcoin on exchanges', 'Trading Bitcoin for profit'], correct: 1 }] },
-    { id: 'l3', title: 'Bitcoin Wallets & Security', duration: '5 min', completed: false, locked: true, quiz: [{ question: 'What is a private key?', options: ['Your wallet address', 'A password to recover your account', 'A secret number that proves ownership of Bitcoin', 'Your email password'], correct: 2 }] },
-  ], enrolled: 12450, trending: true, isNew: false, icon: '₿', color: 'orange', progress: 33 },
+    { id: 'l1', title: 'What is Bitcoin?', duration: '5 min', completed: true, locked: false, externalLinks: [{ title: "Bitcoin.org - How it Works", url: "https://bitcoin.org/en/how-it-works", type: "documentation" }, { title: "Bitcoin Whitepaper", url: "https://bitcoin.org/bitcoin.pdf", type: "documentation" }], quiz: [{ question: 'Who created Bitcoin?', options: ['Vitalik Buterin', 'Satoshi Nakamoto', 'Elon Musk', 'Changpeng Zhao'], correct: 1 }, { question: 'What is the maximum supply of Bitcoin?', options: ['10 million', '21 million', '100 million', 'Unlimited'], correct: 1 }] },
+    { id: 'l2', title: 'How Bitcoin Mining Works', duration: '5 min', completed: false, locked: false, externalLinks: [{ title: "Bitcoin Mining Explained", url: "https://www.investopedia.com/terms/b/bitcoin-mining.asp", type: "article" }], quiz: [{ question: 'What is Bitcoin mining?', options: ['Creating new Bitcoins from thin air', 'Solving complex math problems to validate transactions', 'Buying Bitcoin on exchanges', 'Trading Bitcoin for profit'], correct: 1 }] },
+    { id: 'l3', title: 'Bitcoin Wallets & Security', duration: '5 min', completed: false, locked: true, externalLinks: [{ title: "How to Choose a Bitcoin Wallet", url: "https://bitcoin.org/en/choose-your-wallet", type: "documentation" }], quiz: [{ question: 'What is a private key?', options: ['Your wallet address', 'A password to recover your account', 'A secret number that proves ownership of Bitcoin', 'Your email password'], correct: 2 }] },
+  ], enrolled: 12450, trending: true, isNew: false, icon: '₿', color: 'orange', progress: 33, externalLinks: [{ title: "Bitcoin.org", url: "https://bitcoin.org/en/", type: "documentation" }, { title: "Bitcoin for Beginners", url: "https://www.bitpanda.com/academy/en", type: "guide" }] },
   { id: '2', title: 'Ethereum & Smart Contracts', description: 'Understand Ethereum, smart contracts, and decentralized applications', category: 'Ethereum', difficulty: 'Beginner', reward: 5, duration: '20 min', lessons: [
-    { id: 'l4', title: 'What is Ethereum?', duration: '5 min', completed: false, locked: false, quiz: [{ question: 'Who proposed Ethereum?', options: ['Satoshi Nakamoto', 'Vitalik Buterin', 'Charles Hoskinson', 'Brad Garlinghouse'], correct: 1 }] },
-    { id: 'l5', title: 'Smart Contracts Explained', duration: '5 min', completed: false, locked: true, quiz: [{ question: 'What is a smart contract?', options: ['A legal contract on paper', 'Self-executing code on the blockchain', 'A contract between two exchanges', 'A type of cryptocurrency'], correct: 1 }] },
+    { id: 'l4', title: 'What is Ethereum?', duration: '5 min', completed: false, locked: false, externalLinks: [{ title: "Ethereum.org", url: "https://ethereum.org/en/", type: "documentation" }, { title: "What is Ethereum?", url: "https://www.investopedia.com/terms/e/ethereum.asp", type: "article" }], quiz: [{ question: 'Who proposed Ethereum?', options: ['Satoshi Nakamoto', 'Vitalik Buterin', 'Charles Hoskinson', 'Brad Garlinghouse'], correct: 1 }] },
+    { id: 'l5', title: 'Smart Contracts Explained', duration: '5 min', completed: false, locked: true, externalLinks: [{ title: "Smart Contract Guide", url: "https://ethereum.org/en/developers/docs/smart-contracts/", type: "documentation" }], quiz: [{ question: 'What is a smart contract?', options: ['A legal contract on paper', 'Self-executing code on the blockchain', 'A contract between two exchanges', 'A type of cryptocurrency'], correct: 1 }] },
     { id: 'l6', title: 'dApps & DeFi on Ethereum', duration: '5 min', completed: false, locked: true, quiz: [] },
     { id: 'l7', title: 'Gas Fees & Transactions', duration: '5 min', completed: false, locked: true, quiz: [] },
-  ], enrolled: 8930, trending: true, isNew: false, icon: '⟠', color: 'blue', progress: 0 },
+  ], enrolled: 8930, trending: true, isNew: false, icon: '⟠', color: 'blue', progress: 0, externalLinks: [{ title: "Ethereum Developer Docs", url: "https://ethereum.org/en/developers/docs/", type: "documentation" }, { title: "Intro to Smart Contracts", url: "https://www.youtube.com/watch?v=gyMwXuJrbJQ", type: "video" }] },
   { id: '3', title: 'DeFi Fundamentals', description: 'Decentralized Finance: lending, borrowing, yield farming, and more', category: 'DeFi', difficulty: 'Intermediate', reward: 8, duration: '25 min', lessons: [
     { id: 'l8', title: 'What is DeFi?', duration: '5 min', completed: false, locked: false, quiz: [] },
     { id: 'l9', title: 'Lending & Borrowing Protocols', duration: '5 min', completed: false, locked: true, quiz: [] },
@@ -84,7 +97,15 @@ const courses: Course[] = [
   ], enrolled: 2890, trending: false, isNew: true, icon: '📊', color: 'cyan', progress: 0 },
 ];
 
-const categories = ['All', 'Beginner', 'Intermediate', 'Advanced', 'DeFi', 'Trading', 'Security'];
+const categories = ['All', 'Beginner', 'Intermediate', 'Advanced', 'DeFi', 'Trading', 'Security', 'Bitcoin', 'Ethereum', 'Stablecoins', 'NFT'];
+
+const getLinkIcon = (type: string) => {
+  switch (type) {
+    case 'video': return <Video className="h-3 w-3" />;
+    case 'documentation': return <FileText className="h-3 w-3" />;
+    default: return <ExternalLink className="h-3 w-3" />;
+  }
+};
 
 const LearnAndEarn = () => {
   const [search, setSearch] = useState('');
@@ -92,6 +113,7 @@ const LearnAndEarn = () => {
   const [activeCourse, setActiveCourse] = useState<string | null>(null);
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
+  const [showResourcesMap, setShowResourcesMap] = useState<Record<string, boolean>>({});
 
   const totalEarned = 5;
   const totalAvailable = courses.reduce((sum, c) => sum + c.reward, 0);
@@ -107,88 +129,149 @@ const LearnAndEarn = () => {
     setSelectedAnswers(prev => ({ ...prev, [`${lessonId}-${questionIndex}`]: answerIndex }));
   };
 
-  const renderCourseDetail = (course: Course) => (
-    <Card key={course.id} className="border-border/30 mb-6">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex items-start gap-3">
-            <div className={`text-3xl`}>{course.icon}</div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg">{course.title}</h3>
-                <Badge variant={course.difficulty === 'Beginner' ? 'default' : course.difficulty === 'Intermediate' ? 'secondary' : 'destructive'} className="text-[10px]">
-                  {course.difficulty}
-                </Badge>
-                {course.trending && <Badge variant="outline" className="text-[10px] text-purple-400 border-purple-500/30"><TrendingUp className="h-3 w-3 mr-0.5" />Trending</Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">{course.description}</p>
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <span><Clock className="h-3 w-3 inline mr-1" />{course.duration}</span>
-                <span><BookOpen className="h-3 w-3 inline mr-1" />{course.lessons.length} lessons</span>
-                <span><DollarSign className="h-3 w-3 inline mr-1" />Earn ${course.reward}</span>
-                <span><Users className="h-3 w-3 inline mr-1" />{course.enrolled.toLocaleString()} enrolled</span>
-              </div>
-            </div>
-          </div>
-          {course.progress > 0 && (
-            <div className="text-right">
-              <div className="text-sm font-medium">{course.progress}%</div>
-              <Progress value={course.progress} className="w-20 h-1.5 mt-1" />
-            </div>
-          )}
-        </div>
+  const toggleShowResources = (courseId: string) => {
+    setShowResourcesMap(prev => ({ ...prev, [courseId]: !prev[courseId] }));
+  };
 
-        <div className="space-y-2 mt-4">
-          {course.lessons.map((lesson, li) => (
-            <div key={lesson.id}>
-              <div className={`p-3 rounded-lg border ${lesson.completed ? 'border-green-500/30 bg-green-500/5' : lesson.locked ? 'border-border/20 bg-muted/10 opacity-60' : 'border-border/30 hover:border-blue-500/30 cursor-pointer'}`}
-                onClick={() => !lesson.locked && setActiveLesson(activeLesson === lesson.id ? null : lesson.id)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {lesson.completed ? <CheckCircle className="h-4 w-4 text-green-400" /> : lesson.locked ? <Lock className="h-4 w-4 text-muted-foreground" /> : <Play className="h-4 w-4 text-blue-400" />}
-                    <span className="text-sm">{lesson.title}</span>
-                    <Badge variant="outline" className="text-[10px]">{lesson.duration}</Badge>
-                  </div>
-                  {lesson.completed && <Badge className="bg-green-500/10 text-green-400 border-green-500/30 text-[10px]">Completed</Badge>}
+  const renderCourseDetail = (course: Course) => {
+    const showResources = showResourcesMap[course.id] || false;
+    return (
+      <Card key={course.id} className="border-border/30 mb-6">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className={`text-3xl`}>{course.icon}</div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-lg">{course.title}</h3>
+                  <Badge variant={course.difficulty === 'Beginner' ? 'default' : course.difficulty === 'Intermediate' ? 'secondary' : 'destructive'} className="text-[10px]">
+                    {course.difficulty}
+                  </Badge>
+                  {course.trending && <Badge variant="outline" className="text-[10px] text-purple-400 border-purple-500/30"><TrendingUp className="h-3 w-3 mr-0.5" />Trending</Badge>}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{course.description}</p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  <span><Clock className="h-3 w-3 inline mr-1" />{course.duration}</span>
+                  <span><BookOpen className="h-3 w-3 inline mr-1" />{course.lessons.length} lessons</span>
+                  <span><DollarSign className="h-3 w-3 inline mr-1" />Earn ${course.reward}</span>
+                  <span><Users className="h-3 w-3 inline mr-1" />{course.enrolled.toLocaleString()} enrolled</span>
                 </div>
               </div>
+            </div>
+            {course.progress > 0 && (
+              <div className="text-right">
+                <div className="text-sm font-medium">{course.progress}%</div>
+                <Progress value={course.progress} className="w-20 h-1.5 mt-1" />
+              </div>
+            )}
+          </div>
 
-              {activeLesson === lesson.id && lesson.quiz.length > 0 && (
-                <div className="mt-2 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                  <h4 className="text-sm font-medium mb-3">Quick Quiz</h4>
-                  {lesson.quiz.map((q, qi) => (
-                    <div key={qi} className="mb-3 last:mb-0">
-                      <p className="text-sm mb-2">{q.question}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {q.options.map((opt, oi) => (
-                          <button key={oi} className={`p-2 rounded-lg text-xs text-left border transition-colors ${
-                            selectedAnswers[`${lesson.id}-${qi}`] === oi 
-                              ? oi === q.correct 
-                                ? 'border-green-500 bg-green-500/10 text-green-400' 
-                                : 'border-red-500 bg-red-500/10 text-red-400'
-                              : 'border-border/30 hover:border-blue-500/30'
-                          }`}
-                            onClick={() => handleQuizAnswer(lesson.id, qi, oi)}
-                            disabled={selectedAnswers[`${lesson.id}-${qi}`] !== undefined}>
-                            {opt}
-                          </button>
-                        ))}
+          {course.externalLinks && (
+            <div className="mb-4">
+              <button 
+                onClick={() => toggleShowResources(course.id)}
+                className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" />
+                {showResources ? 'Hide' : 'Show'} Recommended Resources ({course.externalLinks.length})
+              </button>
+              {showResources && (
+                <div className="mt-2 space-y-1.5">
+                  {course.externalLinks.map((link, i) => (
+                    <a 
+                      key={i} 
+                      href={link.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 border border-border/20 transition-colors group"
+                    >
+                      {getLinkIcon(link.type)}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-foreground group-hover:text-blue-400 transition-colors truncate">{link.title}</div>
                       </div>
-                      {selectedAnswers[`${lesson.id}-${qi}`] !== undefined && (
-                        <p className={`text-xs mt-1 ${selectedAnswers[`${lesson.id}-${qi}`] === q.correct ? 'text-green-400' : 'text-red-400'}`}>
-                          {selectedAnswers[`${lesson.id}-${qi}`] === q.correct ? '✓ Correct!' : `✗ Incorrect. The answer is: ${q.options[q.correct]}`}
-                        </p>
-                      )}
-                    </div>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-blue-400" />
+                    </a>
                   ))}
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
+          )}
+
+          <div className="space-y-2 mt-2">
+            {course.lessons.map((lesson, li) => (
+              <div key={lesson.id}>
+                <div className={`p-3 rounded-lg border ${lesson.completed ? 'border-green-500/30 bg-green-500/5' : lesson.locked ? 'border-border/20 bg-muted/10 opacity-60' : 'border-border/30 hover:border-blue-500/30 cursor-pointer'}`}
+                  onClick={() => !lesson.locked && setActiveLesson(activeLesson === lesson.id ? null : lesson.id)}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {lesson.completed ? <CheckCircle className="h-4 w-4 text-green-400" /> : lesson.locked ? <Lock className="h-4 w-4 text-muted-foreground" /> : <Play className="h-4 w-4 text-blue-400" />}
+                      <span className="text-sm">{lesson.title}</span>
+                      <Badge variant="outline" className="text-[10px]">{lesson.duration}</Badge>
+                    </div>
+                    {lesson.completed && <Badge className="bg-green-500/10 text-green-400 border-green-500/30 text-[10px]">Completed</Badge>}
+                  </div>
+                </div>
+
+                {activeLesson === lesson.id && lesson.quiz.length > 0 && (
+                  <div className="mt-2 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    {lesson.externalLinks && (
+                      <div className="mb-4 pb-4 border-b border-border/20">
+                        <h4 className="text-xs font-medium mb-2 text-muted-foreground flex items-center gap-1.5">
+                          <ExternalLink className="h-3 w-3" />
+                          Recommended Learning Resources
+                        </h4>
+                        <div className="space-y-1.5">
+                          {lesson.externalLinks.map((link, i) => (
+                            <a 
+                              key={i} 
+                              href={link.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 transition-colors"
+                            >
+                              {getLinkIcon(link.type)}
+                              <span className="text-xs text-blue-300">{link.title}</span>
+                              <ExternalLink className="h-3 w-3 ml-auto text-blue-400" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <h4 className="text-sm font-medium mb-3">Quick Quiz</h4>
+                    {lesson.quiz.map((q, qi) => (
+                      <div key={qi} className="mb-3 last:mb-0">
+                        <p className="text-sm mb-2">{q.question}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {q.options.map((opt, oi) => (
+                            <button key={oi} className={`p-2 rounded-lg text-xs text-left border transition-colors ${
+                              selectedAnswers[`${lesson.id}-${qi}`] === oi 
+                                ? oi === q.correct 
+                                  ? 'border-green-500 bg-green-500/10 text-green-400' 
+                                  : 'border-red-500 bg-red-500/10 text-red-400'
+                                : 'border-border/30 hover:border-blue-500/30'
+                            }`}
+                              onClick={() => handleQuizAnswer(lesson.id, qi, oi)}
+                              disabled={selectedAnswers[`${lesson.id}-${qi}`] !== undefined}>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedAnswers[`${lesson.id}-${qi}`] !== undefined && (
+                          <p className={`text-xs mt-1 ${selectedAnswers[`${lesson.id}-${qi}`] === q.correct ? 'text-green-400' : 'text-red-400'}`}>
+                            {selectedAnswers[`${lesson.id}-${qi}`] === q.correct ? '✓ Correct!' : `✗ Incorrect. The answer is: ${q.options[q.correct]}`}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <>

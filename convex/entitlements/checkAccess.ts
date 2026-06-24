@@ -1,69 +1,79 @@
-/// <reference path="../../src/types.d.ts" />
-
-import { action } from "convex/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { ActionCtx } from "../_generated/server";
 
-// Check if a user has access to a specific feature, data source, or channel
-export const checkAccess = action({
-  async handler(ctx: ActionCtx, { userId, featureName, accessLevel }: { userId: string; featureName: string; accessLevel: string }) {
-    // Check featureAccess table
-    const access = await ctx.db.query("featureAccess")
-      .withIndex("by_user_and_feature", (q: any) => q.eq("userId", userId).eq("featureName", featureName))
-      .first();
+const levelOrder: Record<string, number> = { free: 0, basic: 1, advanced: 2, premium: 3, full: 4, enterprise: 5 };
 
-    if (!access) {
-      // Check user's subscription plan entitlements
-      const userSub = await ctx.db.get("userSubscriptions", userId); // This might need a query
-      if (!userSub) return { allowed: false, reason: "No subscription" };
+export const checkAccess = query({
+  args: { userId: v.string(), featureName: v.string() },
+  async handler(ctx, args) {
+    const sub = await ctx.db.query("userSubscriptions").withIndex("by_user", (q: any) => q.eq("userId", args.userId)).first();
+    if (!sub || sub.status !== "active") return { granted: false, reason: "No active subscription" };
+    if (sub.currentPeriodEnd && sub.currentPeriodEnd < Date.now()) return { granted: false, reason: "Subscription expired" };
 
-      // Check subscriptionFeatures and tierFeatureMap
-      // For simplicity, we'll just check if the user has a valid subscription
-      const now = Date.now();
-      if (userSub.status !== "active" || userSub.currentPeriodEnd < now) {
-        return { allowed: false, reason: "Inactive subscription" };
-      }
-
-      // Check if the feature is included in the plan
-      // This would require querying subscriptionFeatures and tierFeatureMap
-      // For now, return false
-      return { allowed: false, reason: "Feature not included in plan" };
+    const entitlement = await ctx.db.query("entitlementModel").withIndex("by_user_feature", (q: any) => q.eq("userId", args.userId).eq("featureName", args.featureName)).first();
+    if (entitlement) {
+      return { granted: entitlement.accessLevel !== "free" && (!entitlement.expiresAt || entitlement.expiresAt > Date.now()) };
     }
 
-    // Check if access has expired
-    if (access.expiresAt && access.expiresAt < Date.now()) {
-      return { allowed: false, reason: "Access expired" };
-    }
+    const plan = await ctx.db.query("subscriptionPlans").withIndex("by_name", (q: any) => q.eq("name", sub.planId)).first();
+    if (!plan) return { granted: false, reason: "Plan not found" };
 
-    // Check access level
-    if (access.accessLevel !== accessLevel) {
-      return { allowed: false, reason: "Insufficient access level" };
-    }
+    const feature = await ctx.db.query("featureRegistry").withIndex("by_feature_name", (q: any) => q.eq("featureName", args.featureName)).first();
+    if (!feature) return { granted: false, reason: "Feature not in registry" };
 
-    return { allowed: true };
+    const userLevel = levelOrder[sub.planId.toLowerCase()] ?? 0;
+    const requiredLevel = levelOrder[feature.requiredAccessLevel] ?? 99;
+    return { granted: userLevel >= requiredLevel, plan: sub.planId };
   },
 });
 
-// Check data entitlements for a user to access a specific source/channel
-export const checkDataEntitlement = action({
-  async handler(ctx: ActionCtx, { userId, sourceId, channel, marketType }: { userId: string; sourceId: string; channel: string; marketType?: string }) {
-    const entitlement = await ctx.db.query("dataEntitlements")
-      .withIndex("by_user_and_source", (q: any) => q.eq("userId", userId).eq("sourceId", sourceId))
-      .filter((q: any) => q.eq("channel", channel))
-      .first();
+export const getAccessibleFeatures = query({
+  args: { userId: v.string() },
+  async handler(ctx, args) {
+    const accessible: string[] = [];
+    const features = await ctx.db.query("featureRegistry").withIndex("by_active", (q: any) => q.eq("isActive", true)).collect();
+    const sub = await ctx.db.query("userSubscriptions").withIndex("by_user", (q: any) => q.eq("userId", args.userId)).first();
+    if (!sub || sub.status !== "active") return [];
 
-    if (!entitlement) {
-      return { allowed: false, reason: "No data entitlement" };
+    const plan = await ctx.db.query("subscriptionPlans").withIndex("by_name", (q: any) => q.eq("name", sub.planId)).first();
+    if (!plan) return [];
+
+    for (const feature of features) {
+      if (plan.features.includes(feature.featureName)) accessible.push(feature.featureName);
     }
+    return accessible;
+  },
+});
 
-    if (entitlement.expiresAt && entitlement.expiresAt < Date.now()) {
-      return { allowed: false, reason: "Entitlement expired" };
+export const checkChannelAccess = query({
+  args: {
+    userId: v.string(),
+    channel: v.union(v.literal("trades"), v.literal("ticker"), v.literal("orderbook_l1"), v.literal("orderbook_l2"), v.literal("signals"), v.literal("ai_predictions"), v.literal("alerts"), v.literal("portfolio")),
+  },
+  async handler(ctx, args) {
+    const entitlement = await ctx.db.query("dataEntitlements").withIndex("by_user_source_channel", (q: any) => q.eq("userId", args.userId)).first();
+    if (entitlement && entitlement.channel === args.channel && (!entitlement.expiresAt || entitlement.expiresAt > Date.now())) {
+      return { granted: true, accessLevel: entitlement.accessLevel };
     }
+    return { granted: false, reason: "No channel entitlement" };
+  },
+});
 
-    if (entitlement.marketType && entitlement.marketType !== marketType) {
-      return { allowed: false, reason: "Market type not allowed" };
-    }
+export const enforceAccess = mutation({
+  args: { userId: v.string(), featureName: v.string(), action: v.string() },
+  async handler(ctx, args) {
+    const sub = await ctx.db.query("userSubscriptions").withIndex("by_user", (q: any) => q.eq("userId", args.userId)).first();
+    const granted = sub && sub.status === "active";
 
-    return { allowed: true };
+    await ctx.db.insert("auditLogs", {
+      userId: args.userId,
+      action: `${granted ? "access_granted" : "access_denied"}:${args.action}`,
+      entityType: "feature",
+      entityId: args.featureName,
+      createdAt: Date.now(),
+    });
+
+    if (!granted) throw new Error("Access denied: No active subscription");
+    return { granted: true };
   },
 });
